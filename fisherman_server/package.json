@@ -1,0 +1,26 @@
+{
+  "name": "fisherman-server",
+  "version": "1.0.0",
+  "description": "Backend API service for FisherMan (钓鱼佬) App",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js",
+    "test": "node --test test/api.test.js"
+  },
+  "keywords": [
+    "fisherman",
+    "fishing",
+    "api",
+    "flutter-backend"
+  ],
+  "author": "FisherMan Team",
+  "license": "MIT",
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "express": "^4.21.2",
+    "jsonwebtoken": "^9.0.2",
+    "multer": "^1.4.5-lts.1"
+  }
+}

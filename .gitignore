@@ -1,0 +1,43 @@
+# Flutter & Dart
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub-cache/
+.pub/
+fisherman_app/build/
+build/
+*.lock
+
+# Node & Backend
+node_modules/
+fisherman_server/node_modules/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+fisherman_server/data/
+fisherman_server/*.db
+fisherman_server/*.db-journal
+fisherman_server/*.db-wal
+fisherman_server/*.db-shm
+*.db
+fisherman_server/public/uploads/*
+!fisherman_server/public/uploads/.gitkeep
+
+# IDE & OS
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Android & iOS
+fisherman_app/android/key.properties
+fisherman_app/android/.gradle
+fisherman_app/android/local.properties
+fisherman_app/ios/Pods/
+fisherman_app/ios/.symlinks/
+fisherman_app/ios/Flutter/Flutter.framework
+fisherman_app/ios/Flutter/Flutter.podspec

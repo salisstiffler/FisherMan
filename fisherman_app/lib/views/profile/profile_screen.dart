@@ -1,0 +1,385 @@
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../../core/constants/app_colors.dart';
+import '../../core/network/api_client.dart';
+import '../../models/user_model.dart';
+import '../../providers/auth_provider.dart';
+import '../../providers/catches_provider.dart';
+import '../../providers/spots_provider.dart';
+import '../feed/catch_detail_screen.dart';
+import '../map/spot_detail_screen.dart';
+import 'edit_profile_screen.dart';
+
+class ProfileScreen extends StatefulWidget {
+  const ProfileScreen({super.key});
+
+  @override
+  State<ProfileScreen> createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProviderStateMixin {
+  late TabController _tabController;
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 2, vsync: this);
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
+
+  void _showServerSettings(BuildContext context) {
+    final controller = TextEditingController(text: ApiClient().baseUrl);
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('服务器网络设置'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('配置后端 API 服务地址（支持本地或云端 IP）：', style: TextStyle(fontSize: 13)),
+            const SizedBox(height: 12),
+            TextField(
+              controller: controller,
+              decoration: const InputDecoration(
+                hintText: 'http://10.0.2.2:8080 或 http://localhost:8080',
+                labelText: 'API Base URL',
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('取消'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              ApiClient().setBaseUrl(controller.text.trim());
+              Navigator.pop(ctx);
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('已更新服务器地址为: ${controller.text.trim()}')),
+              );
+            },
+            child: const Text('保存'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final auth = Provider.of<AuthProvider>(context);
+    final user = auth.currentUser;
+    final stats = user?.stats ?? UserStats();
+    final catchesProvider = Provider.of<CatchesProvider>(context);
+    final spotsProvider = Provider.of<SpotsProvider>(context);
+
+    // Filter user's catches and favorite spots
+    final myCatches = catchesProvider.catches;
+    final favoriteSpots = spotsProvider.spots.where((s) => s.isFavorited).toList();
+
+    return Scaffold(
+      backgroundColor: AppColors.lightBackground,
+      appBar: AppBar(
+        title: const Text('我的钓界'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.settings_outlined),
+            tooltip: '服务器配置',
+            onPressed: () => _showServerSettings(context),
+          ),
+          IconButton(
+            icon: const Icon(Icons.logout),
+            tooltip: '退出登录',
+            onPressed: () {
+              auth.logout();
+            },
+          ),
+        ],
+      ),
+      body: NestedScrollView(
+        headerSliverBuilder: (context, innerBoxIsScrolled) {
+          return [
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  children: [
+                    // User Card
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [AppColors.primaryDark, AppColors.primary],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppColors.primaryDark.withValues(alpha: 0.3),
+                            blurRadius: 12,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        children: [
+                          Row(
+                            children: [
+                              CircleAvatar(
+                                radius: 32,
+                                backgroundColor: Colors.white,
+                                child: CircleAvatar(
+                                  radius: 30,
+                                  backgroundImage: (user?.avatar.isNotEmpty ?? false)
+                                      ? NetworkImage(user!.avatar)
+                                      : null,
+                                  child: (user?.avatar.isEmpty ?? true)
+                                      ? const Icon(Icons.phishing, size: 32, color: AppColors.primary)
+                                      : null,
+                                ),
+                              ),
+                              const SizedBox(width: 14),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        Text(
+                                          user?.nickname ?? '钓鱼佬',
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 18,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                          decoration: BoxDecoration(
+                                            color: AppColors.goldenFish,
+                                            borderRadius: BorderRadius.circular(10),
+                                          ),
+                                          child: Text(
+                                            '${user?.fishingYears ?? 1}年钓龄',
+                                            style: const TextStyle(
+                                              color: Colors.black87,
+                                              fontSize: 10,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      '主攻: ${user?.targetFish ?? '鲫鱼、鲤鱼'}',
+                                      style: const TextStyle(color: AppColors.textLightSecondary, fontSize: 12),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      user?.bio ?? '永不空军，钓获放流！',
+                                      style: const TextStyle(color: Colors.white70, fontSize: 12),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              IconButton(
+                                icon: const Icon(Icons.edit, color: Colors.white70, size: 20),
+                                onPressed: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(builder: (_) => const EditProfileScreen()),
+                                  );
+                                },
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Angler Stats Grid
+                    Row(
+                      children: [
+                        _buildStatBox('累计渔获', '${stats.catchesCount}尾', Icons.phishing),
+                        const SizedBox(width: 8),
+                        _buildStatBox('总捕获量', '${stats.totalWeightKg}kg', Icons.scale),
+                        const SizedBox(width: 8),
+                        _buildStatBox('最大单尾', '${stats.maxWeightKg}kg', Icons.military_tech),
+                        const SizedBox(width: 8),
+                        _buildStatBox('开拓钓点', '${stats.spotsCreated}个', Icons.place),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Badges Wall
+                    if (stats.badges.isNotEmpty) ...[
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          '荣耀钓王勋章 (${stats.badges.length})',
+                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: stats.badges.map((b) {
+                          return Container(
+                            margin: const EdgeInsets.only(right: 8),
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(color: AppColors.lightBorder),
+                            ),
+                            child: Row(
+                              children: [
+                                Text(b.icon, style: const TextStyle(fontSize: 16)),
+                                const SizedBox(width: 4),
+                                Text(b.name, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                              ],
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                      const SizedBox(height: 12),
+                    ],
+
+                    // Tab bar for Catches vs Favorites
+                    Container(
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: TabBar(
+                        controller: _tabController,
+                        indicatorColor: AppColors.primary,
+                        labelColor: AppColors.primary,
+                        unselectedLabelColor: AppColors.textSecondary,
+                        tabs: [
+                          Tab(text: '我的战报 (${myCatches.length})'),
+                          Tab(text: '收藏钓点 (${favoriteSpots.length})'),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ];
+        },
+        body: TabBarView(
+          controller: _tabController,
+          children: [
+            // Catches List
+            myCatches.isEmpty
+                ? const Center(
+                    child: Text('暂无战报，快去发布今日首条大鱼！', style: TextStyle(color: AppColors.textMuted)),
+                  )
+                : ListView.builder(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    itemCount: myCatches.length,
+                    itemBuilder: (context, index) {
+                      final item = myCatches[index];
+                      return Card(
+                        margin: const EdgeInsets.only(bottom: 10),
+                        child: ListTile(
+                          leading: ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: Image.network(
+                              item.photoUrl ?? 'https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=600',
+                              width: 54,
+                              height: 54,
+                              fit: BoxFit.cover,
+                            ),
+                          ),
+                          title: Text('${item.fishType} • ${item.weightKg} kg', style: const TextStyle(fontWeight: FontWeight.bold)),
+                          subtitle: Text('${item.spotName} • ${item.fishingMethod}'),
+                          trailing: const Icon(Icons.chevron_right),
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (_) => CatchDetailScreen(catchRecord: item)),
+                            );
+                          },
+                        ),
+                      );
+                    },
+                  ),
+
+            // Favorites List
+            favoriteSpots.isEmpty
+                ? const Center(
+                    child: Text('暂无收藏钓点，在地图上点击红心收藏心仪水域', style: TextStyle(color: AppColors.textMuted)),
+                  )
+                : ListView.builder(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    itemCount: favoriteSpots.length,
+                    itemBuilder: (context, index) {
+                      final spot = favoriteSpots[index];
+                      return Card(
+                        margin: const EdgeInsets.only(bottom: 10),
+                        child: ListTile(
+                          leading: ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: Image.network(
+                              spot.imageUrl ?? 'https://images.unsplash.com/photo-1501785888041-af3ef285b470?w=600',
+                              width: 54,
+                              height: 54,
+                              fit: BoxFit.cover,
+                            ),
+                          ),
+                          title: Text(spot.name, style: const TextStyle(fontWeight: FontWeight.bold)),
+                          subtitle: Text('${spot.waterType} • ${spot.chargeType} • 水深${spot.depthMeters}m'),
+                          trailing: const Icon(Icons.chevron_right),
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (_) => SpotDetailScreen(spot: spot)),
+                            );
+                          },
+                        ),
+                      );
+                    },
+                  ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStatBox(String title, String value, IconData icon) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 10),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: AppColors.lightBorder),
+        ),
+        child: Column(
+          children: [
+            Icon(icon, size: 18, color: AppColors.primary),
+            const SizedBox(height: 4),
+            Text(value, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+            const SizedBox(height: 2),
+            Text(title, style: const TextStyle(color: AppColors.textSecondary, fontSize: 10)),
+          ],
+        ),
+      ),
+    );
+  }
+}
