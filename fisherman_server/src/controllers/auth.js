@@ -14,6 +14,9 @@ function getUserStats(userId) {
 
   const favoriteCount = db.prepare('SELECT COUNT(*) as count FROM favorites WHERE user_id = ?').get(userId).count;
 
+  const followersCount = db.prepare('SELECT COUNT(*) as count FROM follows WHERE following_id = ?').get(userId)?.count ?? 0;
+  const followingCount = db.prepare('SELECT COUNT(*) as count FROM follows WHERE follower_id = ?').get(userId)?.count ?? 0;
+
   // Compute fun badges for fishermen
   const badges = [];
   if (catchStats.count >= 1) badges.push({ id: 'first_blood', name: '破空先锋', icon: '🎣' });
@@ -27,6 +30,8 @@ function getUserStats(userId) {
     totalWeightKg: Math.round(catchStats.total_weight * 10) / 10,
     maxWeightKg: Math.round(catchStats.max_weight * 10) / 10,
     favoritesCount: favoriteCount,
+    followersCount,
+    followingCount,
     badges,
   };
 }
@@ -137,8 +142,10 @@ exports.getUserProfile = (req, res) => {
     return res.status(404).json({ code: 404, message: '用户不存在' });
   }
   const stats = getUserStats(targetId);
+  const viewerId = req.user?.id || 0;
+  const isFollowing = viewerId ? Boolean(db.prepare('SELECT 1 FROM follows WHERE follower_id = ? AND following_id = ?').get(viewerId, targetId)) : false;
   res.json({
     code: 200,
-    data: { ...user, stats },
+    data: { ...user, stats, isFollowing },
   });
 };

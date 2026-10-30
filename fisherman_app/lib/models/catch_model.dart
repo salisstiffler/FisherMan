@@ -4,6 +4,7 @@ class CatchComment {
   final String userNickname;
   final String userAvatar;
   final String content;
+  final int? parentId;
   final String createdAt;
 
   CatchComment({
@@ -12,6 +13,7 @@ class CatchComment {
     required this.userNickname,
     required this.userAvatar,
     required this.content,
+    this.parentId,
     required this.createdAt,
   });
 
@@ -22,6 +24,7 @@ class CatchComment {
       userNickname: json['userNickname'] ?? json['user_nickname'] ?? '钓友',
       userAvatar: json['userAvatar'] ?? json['user_avatar'] ?? '',
       content: json['content'] ?? '',
+      parentId: json['parentId'] ?? json['parent_id'],
       createdAt: json['createdAt'] ?? json['created_at'] ?? '',
     );
   }
@@ -91,26 +94,33 @@ class CatchModel {
     }
 
     final spotName = json['spotName'] ?? json['spot_name'] ?? '神秘水域';
-    final spotAddress = json['spotAddress'] ?? json['spot_address'] ?? '$spotName • 户外垂钓标点';
-    final spotLat = (json['spotLat'] ?? json['spot_lat'] as num?)?.toDouble() ?? 30.244;
-    final spotLng = (json['spotLng'] ?? json['spot_lng'] as num?)?.toDouble() ?? 120.145;
+    final spotAddress =
+        json['spotAddress'] ?? json['spot_address'] ?? '$spotName • 户外垂钓标点';
+    final spotLat =
+        (json['spotLat'] ?? json['spot_lat'] as num?)?.toDouble() ?? 30.244;
+    final spotLng =
+        (json['spotLng'] ?? json['spot_lng'] as num?)?.toDouble() ?? 120.145;
 
     return CatchModel(
       id: json['id'] ?? 0,
       userId: json['userId'] ?? json['user_id'] ?? 0,
       userNickname: json['userNickname'] ?? json['user_nickname'] ?? '钓友',
       userAvatar: json['userAvatar'] ?? json['user_avatar'] ?? '',
-      userFishingYears: json['userFishingYears'] ?? json['user_fishing_years'] ?? 1,
+      userFishingYears:
+          json['userFishingYears'] ?? json['user_fishing_years'] ?? 1,
       spotId: json['spotId'] ?? json['spot_id'],
       spotName: spotName,
       spotAddress: spotAddress,
       spotLat: spotLat,
       spotLng: spotLng,
       spotWaterType: json['spotWaterType'] ?? json['spot_water_type'] ?? '野钓',
-      spotChargeType: json['spotChargeType'] ?? json['spot_charge_type'] ?? '免费',
+      spotChargeType:
+          json['spotChargeType'] ?? json['spot_charge_type'] ?? '免费',
       fishType: json['fishType'] ?? json['fish_type'] ?? '大鱼',
-      weightKg: (json['weightKg'] ?? json['weight_kg'] as num?)?.toDouble() ?? 1.0,
-      lengthCm: (json['lengthCm'] ?? json['length_cm'] as num?)?.toDouble() ?? 0.0,
+      weightKg:
+          (json['weightKg'] ?? json['weight_kg'] as num?)?.toDouble() ?? 1.0,
+      lengthCm:
+          (json['lengthCm'] ?? json['length_cm'] as num?)?.toDouble() ?? 0.0,
       fishingMethod: json['fishingMethod'] ?? json['fishing_method'] ?? '台钓',
       depthM: (json['depthM'] ?? json['depth_m'] as num?)?.toDouble() ?? 2.0,
       bait: json['bait'] ?? '商品饵',
@@ -125,37 +135,38 @@ class CatchModel {
   }
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'userId': userId,
-        'userNickname': userNickname,
-        'userAvatar': userAvatar,
-        'userFishingYears': userFishingYears,
-        'spotId': spotId,
-        'spotName': spotName,
-        'spotAddress': spotAddress,
-        'spotLat': spotLat,
-        'spotLng': spotLng,
-        'spotWaterType': spotWaterType,
-        'spotChargeType': spotChargeType,
-        'fishType': fishType,
-        'weightKg': weightKg,
-        'lengthCm': lengthCm,
-        'fishingMethod': fishingMethod,
-        'depthM': depthM,
-        'bait': bait,
-        'photoUrl': photoUrl,
-        'notes': notes,
-        'likesCount': likesCount,
-        'commentsCount': commentsCount,
-        'isLiked': isLiked,
-        'createdAt': createdAt,
-      };
+    'id': id,
+    'userId': userId,
+    'userNickname': userNickname,
+    'userAvatar': userAvatar,
+    'userFishingYears': userFishingYears,
+    'spotId': spotId,
+    'spotName': spotName,
+    'spotAddress': spotAddress,
+    'spotLat': spotLat,
+    'spotLng': spotLng,
+    'spotWaterType': spotWaterType,
+    'spotChargeType': spotChargeType,
+    'fishType': fishType,
+    'weightKg': weightKg,
+    'lengthCm': lengthCm,
+    'fishingMethod': fishingMethod,
+    'depthM': depthM,
+    'bait': bait,
+    'photoUrl': photoUrl,
+    'notes': notes,
+    'likesCount': likesCount,
+    'commentsCount': commentsCount,
+    'isLiked': isLiked,
+    'createdAt': createdAt,
+  };
 
   CatchModel copyWith({
     bool? isLiked,
     int? likesCount,
     int? commentsCount,
     List<CatchComment>? comments,
+    String? notes,
   }) {
     return CatchModel(
       id: id,
@@ -177,7 +188,7 @@ class CatchModel {
       depthM: depthM,
       bait: bait,
       photoUrl: photoUrl,
-      notes: notes,
+      notes: notes ?? this.notes,
       likesCount: likesCount ?? this.likesCount,
       commentsCount: commentsCount ?? this.commentsCount,
       isLiked: isLiked ?? this.isLiked,

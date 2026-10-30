@@ -22,6 +22,8 @@ class UserStats {
   final double totalWeightKg;
   final double maxWeightKg;
   final int favoritesCount;
+  final int followersCount;
+  final int followingCount;
   final List<UserBadge> badges;
 
   UserStats({
@@ -30,6 +32,8 @@ class UserStats {
     this.totalWeightKg = 0.0,
     this.maxWeightKg = 0.0,
     this.favoritesCount = 0,
+    this.followersCount = 0,
+    this.followingCount = 0,
     this.badges = const [],
   });
 
@@ -41,7 +45,10 @@ class UserStats {
       totalWeightKg: (json['totalWeightKg'] as num?)?.toDouble() ?? 0.0,
       maxWeightKg: (json['maxWeightKg'] as num?)?.toDouble() ?? 0.0,
       favoritesCount: json['favoritesCount'] ?? 0,
-      badges: (json['badges'] as List<dynamic>?)
+      followersCount: json['followersCount'] ?? 0,
+      followingCount: json['followingCount'] ?? 0,
+      badges:
+          (json['badges'] as List<dynamic>?)
               ?.map((b) => UserBadge.fromJson(b))
               .toList() ??
           [],
@@ -49,13 +56,15 @@ class UserStats {
   }
 
   Map<String, dynamic> toJson() => {
-        'spotsCreated': spotsCreated,
-        'catchesCount': catchesCount,
-        'totalWeightKg': totalWeightKg,
-        'maxWeightKg': maxWeightKg,
-        'favoritesCount': favoritesCount,
-        'badges': badges.map((b) => b.toJson()).toList(),
-      };
+    'spotsCreated': spotsCreated,
+    'catchesCount': catchesCount,
+    'totalWeightKg': totalWeightKg,
+    'maxWeightKg': maxWeightKg,
+    'favoritesCount': favoritesCount,
+    'followersCount': followersCount,
+    'followingCount': followingCount,
+    'badges': badges.map((b) => b.toJson()).toList(),
+  };
 }
 
 class UserModel {
@@ -67,6 +76,7 @@ class UserModel {
   final int fishingYears;
   final String targetFish;
   final UserStats stats;
+  final bool isFollowing;
 
   UserModel({
     required this.id,
@@ -77,6 +87,7 @@ class UserModel {
     this.fishingYears = 1,
     this.targetFish = '鲫鱼、鲤鱼',
     UserStats? stats,
+    this.isFollowing = false,
   }) : stats = stats ?? UserStats();
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
@@ -89,19 +100,21 @@ class UserModel {
       fishingYears: json['fishing_years'] ?? json['fishingYears'] ?? 1,
       targetFish: json['target_fish'] ?? json['targetFish'] ?? '鲫鱼、鲤鱼',
       stats: UserStats.fromJson(json['stats']),
+      isFollowing: json['isFollowing'] ?? false,
     );
   }
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'username': username,
-        'nickname': nickname,
-        'avatar': avatar,
-        'bio': bio,
-        'fishing_years': fishingYears,
-        'target_fish': targetFish,
-        'stats': stats.toJson(),
-      };
+    'id': id,
+    'username': username,
+    'nickname': nickname,
+    'avatar': avatar,
+    'bio': bio,
+    'fishing_years': fishingYears,
+    'target_fish': targetFish,
+    'stats': stats.toJson(),
+    'isFollowing': isFollowing,
+  };
 
   UserModel copyWith({
     String? nickname,
@@ -110,6 +123,7 @@ class UserModel {
     int? fishingYears,
     String? targetFish,
     UserStats? stats,
+    bool? isFollowing,
   }) {
     return UserModel(
       id: id,
@@ -120,6 +134,7 @@ class UserModel {
       fishingYears: fishingYears ?? this.fishingYears,
       targetFish: targetFish ?? this.targetFish,
       stats: stats ?? this.stats,
+      isFollowing: isFollowing ?? this.isFollowing,
     );
   }
 }

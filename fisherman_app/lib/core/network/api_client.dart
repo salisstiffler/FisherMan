@@ -1,7 +1,11 @@
 import 'dart:convert';
+import 'dart:typed_data';
+
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+
 import '../constants/app_constants.dart';
+import 'api_endpoints.dart';
 
 class ApiResponse<T> {
   final bool success;
@@ -66,7 +70,9 @@ class ApiClient {
     try {
       Uri uri = Uri.parse('$_baseUrl$endpoint');
       if (queryParams != null && queryParams.isNotEmpty) {
-        final stringParams = queryParams.map((k, v) => MapEntry(k, v.toString()));
+        final stringParams = queryParams.map(
+          (k, v) => MapEntry(k, v.toString()),
+        );
         uri = uri.replace(queryParameters: stringParams);
       }
 
@@ -76,11 +82,7 @@ class ApiClient {
 
       return _handleResponse(response);
     } catch (e) {
-      return ApiResponse(
-        success: false,
-        code: 500,
-        message: '网络连接异常: $e',
-      );
+      return ApiResponse(success: false, code: 500, message: '网络连接异常: $e');
     }
   }
 
@@ -100,11 +102,66 @@ class ApiClient {
 
       return _handleResponse(response);
     } catch (e) {
-      return ApiResponse(
-        success: false,
-        code: 500,
-        message: '网络连接异常: $e',
+      return ApiResponse(success: false, code: 500, message: '网络连接异常: $e');
+    }
+  }
+
+  Future<ApiResponse<dynamic>> put(
+    String endpoint, {
+    Map<String, dynamic>? body,
+  }) async {
+    try {
+      final uri = Uri.parse('$_baseUrl$endpoint');
+      final response = await http
+          .put(
+            uri,
+            headers: _buildHeaders(),
+            body: body != null ? jsonEncode(body) : null,
+          )
+          .timeout(const Duration(seconds: 8));
+
+      return _handleResponse(response);
+    } catch (e) {
+      return ApiResponse(success: false, code: 500, message: '网络连接异常: $e');
+    }
+  }
+
+  Future<ApiResponse<dynamic>> delete(String endpoint) async {
+    try {
+      final uri = Uri.parse('$_baseUrl$endpoint');
+      final response = await http
+          .delete(uri, headers: _buildHeaders())
+          .timeout(const Duration(seconds: 8));
+
+      return _handleResponse(response);
+    } catch (e) {
+      return ApiResponse(success: false, code: 500, message: '网络连接异常: $e');
+    }
+  }
+
+  Future<ApiResponse<dynamic>> uploadImage(
+    Uint8List bytes,
+    String filename,
+  ) async {
+    try {
+      final request = http.MultipartRequest(
+        'POST',
+        Uri.parse('$_baseUrl${ApiEndpoints.upload}'),
       );
+      if (_authToken != null && _authToken!.isNotEmpty) {
+        request.headers['Authorization'] = 'Bearer $_authToken';
+      }
+      request.headers['Accept'] = 'application/json';
+      request.files.add(
+        http.MultipartFile.fromBytes('file', bytes, filename: filename),
+      );
+      final streamed = await request.send().timeout(
+        const Duration(seconds: 60),
+      );
+      final response = await http.Response.fromStream(streamed);
+      return _handleResponse(response);
+    } catch (e) {
+      return ApiResponse(success: false, code: 500, message: '图片上传失败: $e');
     }
   }
 

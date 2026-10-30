@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+
 import '../core/network/api_client.dart';
 import '../core/network/api_endpoints.dart';
 import '../models/spot_model.dart';
@@ -59,20 +60,30 @@ class SpotsProvider extends ChangeNotifier {
 
     try {
       final queryParams = <String, dynamic>{};
-      if (_selectedWaterType != '全部') queryParams['water_type'] = _selectedWaterType;
-      if (_selectedChargeType != '全部') queryParams['charge_type'] = _selectedChargeType;
+      if (_selectedWaterType != '全部') {
+        queryParams['water_type'] = _selectedWaterType;
+      }
+      if (_selectedChargeType != '全部') {
+        queryParams['charge_type'] = _selectedChargeType;
+      }
       if (_searchKeyword.isNotEmpty) queryParams['keyword'] = _searchKeyword;
 
       final res = await _api.get(ApiEndpoints.spots, queryParams: queryParams);
 
       if (res.success && res.data is List) {
-        _spots = (res.data as List).map((json) => SpotModel.fromJson(json)).toList();
+        _spots = (res.data as List)
+            .map((json) => SpotModel.fromJson(json))
+            .toList();
       } else {
         // Fallback filtering in memory if server is offline
         _spots = _getFallbackSpots().where((s) {
-          final matchesWater = _selectedWaterType == '全部' || s.waterType == _selectedWaterType;
-          final matchesCharge = _selectedChargeType == '全部' || s.chargeType == _selectedChargeType;
-          final matchesKw = _searchKeyword.isEmpty ||
+          final matchesWater =
+              _selectedWaterType == '全部' || s.waterType == _selectedWaterType;
+          final matchesCharge =
+              _selectedChargeType == '全部' ||
+              s.chargeType == _selectedChargeType;
+          final matchesKw =
+              _searchKeyword.isEmpty ||
               s.name.contains(_searchKeyword) ||
               s.description.contains(_searchKeyword) ||
               s.address.contains(_searchKeyword);
@@ -127,7 +138,7 @@ class SpotsProvider extends ChangeNotifier {
         await fetchSpots();
         return true;
       }
-      
+
       // If server unavailable, add locally
       final newLocalSpot = SpotModel(
         id: DateTime.now().millisecondsSinceEpoch,
@@ -163,7 +174,9 @@ class SpotsProvider extends ChangeNotifier {
       final newStatus = !current.isFavorited;
       _spots[index] = current.copyWith(
         isFavorited: newStatus,
-        likesCount: newStatus ? current.likesCount + 1 : (current.likesCount > 0 ? current.likesCount - 1 : 0),
+        likesCount: newStatus
+            ? current.likesCount + 1
+            : (current.likesCount > 0 ? current.likesCount - 1 : 0),
       );
       if (_selectedSpot?.id == spotId) {
         _selectedSpot = _spots[index];
@@ -174,6 +187,24 @@ class SpotsProvider extends ChangeNotifier {
     try {
       await _api.post(ApiEndpoints.toggleFavorite(spotId));
     } catch (_) {}
+  }
+
+  Future<bool> updateSpot(int spotId, {required String description}) async {
+    final res = await _api.put(
+      ApiEndpoints.updateSpot(spotId),
+      body: {'description': description},
+    );
+    if (!res.success) return false;
+    await fetchSpots();
+    return true;
+  }
+
+  Future<bool> deleteSpot(int spotId) async {
+    final res = await _api.delete(ApiEndpoints.deleteSpot(spotId));
+    if (!res.success) return false;
+    _spots.removeWhere((item) => item.id == spotId);
+    notifyListeners();
+    return true;
   }
 
   List<SpotModel> _getFallbackSpots() {

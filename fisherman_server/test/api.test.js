@@ -1,5 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert');
+const fs = require('node:fs');
+const path = require('node:path');
 const app = require('../src/app');
 
 // Spin up a transient test server
@@ -47,6 +49,13 @@ test('GET /api/catches returns list of seeded catches', async () => {
   assert.ok(json.data.length >= 3);
   assert.ok(json.data[0].fishType);
   assert.ok(json.data[0].weightKg);
+});
+
+test('GET /api/catches supports offset pagination', async () => {
+  const res = await fetch(`${baseUrl}/api/catches?limit=1&offset=1`);
+  assert.strictEqual(res.status, 200);
+  const json = await res.json();
+  assert.strictEqual(json.data.length, 1);
 });
 
 test('GET /api/weather returns barometric pressure & fishing score', async () => {
@@ -97,4 +106,191 @@ test('POST /api/auth/register a new angler', async () => {
   assert.strictEqual(json.code, 200);
   assert.ok(json.data.token);
   assert.strictEqual(json.data.user.nickname, '西湖夜钓客');
+});
+
+test('social profile, notifications, and content ownership endpoints', async () => {
+  async function register(username, nickname) {
+    const response = await fetch(`${baseUrl}/api/auth/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password: 'password123', nickname }),
+    });
+    assert.strictEqual(response.status, 201);
+    return (await response.json()).data;
+  }
+
+  async function request(path, token, method = 'GET', body) {
+    return fetch(`${baseUrl}${path}`, {
+      method,
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+    });
+  }
+
+  const suffix = Date.now();
+  const owner = await register(`owner_${suffix}`, '战报作者');
+  const follower = await register(`follower_${suffix}`, '关注者');
+
+  const form = new FormData();
+  form.append('file', new Blob(['test image'], { type: 'image/png' }), 'test.png');
+  const uploadResponse = await fetch(`${baseUrl}/api/upload`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${owner.token}` },
+    body: form,
+  });
+  assert.strictEqual(uploadResponse.status, 200);
+  const uploadData = (await uploadResponse.json()).data;
+  assert.match(uploadData.url, /^\/uploads\/fish_/);
+  const uploadedFile = path.resolve(
+    __dirname,
+    '..',
+    'public',
+    uploadData.url.slice(1),
+  );
+  fs.unlinkSync(uploadedFile);
+
+  const catchResponse = await request('/api/catches', owner.token, 'POST', {
+    fishType: '测试鱼',
+    weightKg: 1.2,
+    notes: '原始备注',
+  });
+  assert.strictEqual(catchResponse.status, 201);
+  const catchId = (await catchResponse.json()).data.id;
+  const statsResponse = await request('/api/stats/my', owner.token);
+  assert.strictEqual(statsResponse.status, 200);
+  const stats = (await statsResponse.json()).data;
+  assert.ok(Array.isArray(stats.monthly));
+  assert.ok(Array.isArray(stats.fishDistribution));
+
+  const followResponse = await request(
+    `/api/users/${owner.user.id}/follow`,
+    follower.token,
+    'POST',
+  );
+  assert.strictEqual(followResponse.status, 200);
+  assert.strictEqual((await followResponse.json()).data.isFollowing, true);
+
+  const profileResponse = await request(
+    `/api/users/${owner.user.id}`,
+    follower.token,
+  );
+  const profile = (await profileResponse.json()).data;
+  assert.strictEqual(profile.isFollowing, true);
+  assert.strictEqual(profile.stats.followersCount, 1);
+
+  assert.strictEqual(
+    (await request(`/api/catches/${catchId}/like`, follower.token, 'POST')).status,
+    200,
+  );
+  const commentResponse = await request(
+    `/api/catches/${catchId}/comments`,
+    follower.token,
+    'POST',
+    { content: '很棒的渔获' },
+  );
+  assert.strictEqual(commentResponse.status, 201);
+  const commentId = (await commentResponse.json()).data.id;
+  assert.strictEqual(
+    (await request(`/api/catches/${catchId}/comments`, owner.token, 'POST', {
+      content: '感谢夸奖',
+      parentId: commentId,
+    })).status,
+    201,
+  );
+  const detail = await request(`/api/catches/${catchId}`, owner.token);
+  const comments = (await detail.json()).data.comments;
+  assert.ok(comments.some((item) => item.parentId === commentId));
+
+  const search = await fetch(
+    `${baseUrl}/api/search?q=${encodeURIComponent(owner.user.nickname)}&type=users`,
+  );
+  assert.strictEqual(search.status, 200);
+  assert.ok((await search.json()).data.some((item) => item.id === owner.user.id));
+
+  const notificationsResponse = await request('/api/notifications', owner.token);
+  const notifications = (await notificationsResponse.json()).data;
+  assert.ok(notifications.notifications.some((item) => item.type === 'follow'));
+  assert.ok(notifications.notifications.some((item) => item.type === 'like'));
+  assert.ok(notifications.notifications.some((item) => item.type === 'comment'));
+  assert.ok(notifications.unreadCount >= 3);
+  assert.strictEqual(
+    (await request('/api/notifications/read', owner.token, 'PUT')).status,
+    200,
+  );
+  assert.strictEqual(
+    (await request(
+      `/api/catches/${catchId}/comments/${commentId}`,
+      owner.token,
+      'DELETE',
+    )).status,
+    403,
+  );
+  assert.strictEqual(
+    (await request(
+      `/api/catches/${catchId}/comments/${commentId}`,
+      follower.token,
+      'DELETE',
+    )).status,
+    200,
+  );
+  const afterCommentDelete = await request(`/api/catches/${catchId}`, owner.token);
+  const remainingComments = (await afterCommentDelete.json()).data.comments;
+  assert.ok(remainingComments.some((item) => item.parentId === null));
+
+  assert.strictEqual(
+    (await request(`/api/catches/${catchId}`, follower.token, 'PUT', {
+      notes: '未经授权修改',
+    })).status,
+    403,
+  );
+  assert.strictEqual(
+    (await request(`/api/catches/${catchId}`, owner.token, 'PUT', {
+      notes: '更新后的备注',
+    })).status,
+    200,
+  );
+  assert.strictEqual(
+    (await request(`/api/catches/${catchId}`, follower.token, 'DELETE')).status,
+    403,
+  );
+  assert.strictEqual(
+    (await request(`/api/catches/${catchId}`, owner.token, 'DELETE')).status,
+    200,
+  );
+
+  const spotResponse = await request('/api/spots', owner.token, 'POST', {
+    name: '测试钓点',
+    lat: 30.2,
+    lng: 120.1,
+  });
+  assert.strictEqual(spotResponse.status, 201);
+  const spotId = (await spotResponse.json()).data.id;
+  assert.strictEqual(
+    (await request(`/api/spots/${spotId}/reviews`, follower.token, 'POST', {
+      rating: 4,
+      content: '水边环境不错',
+    })).status,
+    200,
+  );
+  const reviewsResponse = await fetch(`${baseUrl}/api/spots/${spotId}/reviews`);
+  const reviews = (await reviewsResponse.json()).data;
+  assert.strictEqual(reviews.avgRating, 4);
+  assert.strictEqual(reviews.reviews.length, 1);
+  assert.strictEqual(
+    (await request(`/api/spots/${spotId}`, follower.token, 'DELETE')).status,
+    403,
+  );
+  assert.strictEqual(
+    (await request(`/api/spots/${spotId}`, owner.token, 'PUT', {
+      description: '更新描述',
+    })).status,
+    200,
+  );
+  assert.strictEqual(
+    (await request(`/api/spots/${spotId}`, owner.token, 'DELETE')).status,
+    200,
+  );
 });

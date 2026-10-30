@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
+
 import '../../core/constants/app_colors.dart';
 import 'map/spot_map_screen.dart';
 import 'feed/feed_screen.dart';
+import 'notifications/notifications_screen.dart';
 import 'publish/publish_catch_screen.dart';
 import 'profile/profile_screen.dart';
+import '../core/network/api_client.dart';
+import '../core/network/api_endpoints.dart';
 
 class MainNavigation extends StatefulWidget {
   const MainNavigation({super.key});
@@ -14,20 +18,39 @@ class MainNavigation extends StatefulWidget {
 
 class _MainNavigationState extends State<MainNavigation> {
   int _currentIndex = 0;
+  int _unreadCount = 0;
 
-  final List<Widget> _pages = const [
-    SpotMapScreen(),
-    FeedScreen(),
-    PublishCatchScreen(),
-    ProfileScreen(),
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _refreshUnreadCount();
+  }
+
+  Future<void> _refreshUnreadCount() async {
+    final response = await ApiClient().get(
+      ApiEndpoints.notificationsUnreadCount,
+    );
+    if (!mounted || !response.success || response.data is! Map) return;
+    setState(() {
+      _unreadCount = response.data['count'] as int? ?? 0;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: IndexedStack(
         index: _currentIndex,
-        children: _pages,
+        children: [
+          const SpotMapScreen(),
+          const FeedScreen(),
+          const PublishCatchScreen(),
+          NotificationsScreen(
+            isActive: _currentIndex == 3,
+            onRead: () => setState(() => _unreadCount = 0),
+          ),
+          const ProfileScreen(),
+        ],
       ),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
@@ -45,10 +68,13 @@ class _MainNavigationState extends State<MainNavigation> {
             setState(() {
               _currentIndex = index;
             });
+            if (index == 3) {
+              _refreshUnreadCount();
+            }
           },
           backgroundColor: Colors.white,
           indicatorColor: AppColors.primary.withValues(alpha: 0.12),
-          destinations: const [
+          destinations: [
             NavigationDestination(
               icon: Icon(Icons.map_outlined),
               selectedIcon: Icon(Icons.map, color: AppColors.primary),
@@ -61,8 +87,53 @@ class _MainNavigationState extends State<MainNavigation> {
             ),
             NavigationDestination(
               icon: Icon(Icons.add_circle_outline, size: 28),
-              selectedIcon: Icon(Icons.add_circle, color: AppColors.primary, size: 28),
+              selectedIcon: Icon(
+                Icons.add_circle,
+                color: AppColors.primary,
+                size: 28,
+              ),
               label: '发布渔获',
+            ),
+            NavigationDestination(
+              icon: Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  const Icon(Icons.notifications_outlined),
+                  if (_unreadCount > 0)
+                    Positioned(
+                      right: -2,
+                      top: -1,
+                      child: Container(
+                        width: 9,
+                        height: 9,
+                        decoration: const BoxDecoration(
+                          color: AppColors.danger,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+              selectedIcon: Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  const Icon(Icons.notifications, color: AppColors.primary),
+                  if (_unreadCount > 0)
+                    Positioned(
+                      right: -2,
+                      top: -1,
+                      child: Container(
+                        width: 9,
+                        height: 9,
+                        decoration: const BoxDecoration(
+                          color: AppColors.danger,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+              label: '消息',
             ),
             NavigationDestination(
               icon: Icon(Icons.person_outline),

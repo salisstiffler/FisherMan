@@ -17,6 +17,7 @@ class SpotModel {
   final String? imageUrl;
   final int likesCount;
   final int catchCount;
+  final double avgRating;
   final bool isFavorited;
   final double? distanceKm;
   final String? createdAt;
@@ -40,6 +41,7 @@ class SpotModel {
     this.imageUrl,
     this.likesCount = 0,
     this.catchCount = 0,
+    this.avgRating = 0,
     this.isFavorited = false,
     this.distanceKm,
     this.createdAt,
@@ -73,15 +75,20 @@ class SpotModel {
       chargeType: json['chargeType'] ?? json['charge_type'] ?? '免费',
       feeDesc: json['feeDesc'] ?? json['fee_desc'] ?? '免费',
       fishTypes: parsedFish,
-      depthMeters: (json['depthMeters'] ?? json['depth_meters'] as num?)?.toDouble() ?? 2.0,
+      depthMeters:
+          (json['depthMeters'] ?? json['depth_meters'] as num?)?.toDouble() ??
+          2.0,
       rules: json['rules'] ?? '保护环境，文明作钓',
       address: json['address'] ?? '自然水域',
       creatorId: json['creatorId'] ?? json['creator_id'],
-      creatorNickname: json['creatorNickname'] ?? json['creator_nickname'] ?? '钓友',
+      creatorNickname:
+          json['creatorNickname'] ?? json['creator_nickname'] ?? '钓友',
       creatorAvatar: json['creatorAvatar'] ?? json['creator_avatar'] ?? '',
       imageUrl: json['imageUrl'] ?? json['image_url'],
       likesCount: json['likesCount'] ?? json['likes_count'] ?? 0,
       catchCount: json['catchCount'] ?? json['catch_count'] ?? 0,
+      avgRating:
+          (json['avgRating'] ?? json['avg_rating'] as num?)?.toDouble() ?? 0,
       isFavorited: json['isFavorited'] ?? json['is_favorited'] ?? false,
       distanceKm: (json['distanceKm'] as num?)?.toDouble(),
       createdAt: json['createdAt'] ?? json['created_at'],
@@ -89,33 +96,35 @@ class SpotModel {
   }
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'name': name,
-        'description': description,
-        'lat': lat,
-        'lng': lng,
-        'waterType': waterType,
-        'chargeType': chargeType,
-        'feeDesc': feeDesc,
-        'fishTypes': fishTypes,
-        'depthMeters': depthMeters,
-        'rules': rules,
-        'address': address,
-        'creatorId': creatorId,
-        'creatorNickname': creatorNickname,
-        'creatorAvatar': creatorAvatar,
-        'imageUrl': imageUrl,
-        'likesCount': likesCount,
-        'catchCount': catchCount,
-        'isFavorited': isFavorited,
-        'distanceKm': distanceKm,
-        'createdAt': createdAt,
-      };
+    'id': id,
+    'name': name,
+    'description': description,
+    'lat': lat,
+    'lng': lng,
+    'waterType': waterType,
+    'chargeType': chargeType,
+    'feeDesc': feeDesc,
+    'fishTypes': fishTypes,
+    'depthMeters': depthMeters,
+    'rules': rules,
+    'address': address,
+    'creatorId': creatorId,
+    'creatorNickname': creatorNickname,
+    'creatorAvatar': creatorAvatar,
+    'imageUrl': imageUrl,
+    'likesCount': likesCount,
+    'catchCount': catchCount,
+    'avgRating': avgRating,
+    'isFavorited': isFavorited,
+    'distanceKm': distanceKm,
+    'createdAt': createdAt,
+  };
 
   SpotModel copyWith({
     bool? isFavorited,
     int? likesCount,
     int? catchCount,
+    double? avgRating,
   }) {
     return SpotModel(
       id: id,
@@ -136,6 +145,7 @@ class SpotModel {
       imageUrl: imageUrl,
       likesCount: likesCount ?? this.likesCount,
       catchCount: catchCount ?? this.catchCount,
+      avgRating: avgRating ?? this.avgRating,
       isFavorited: isFavorited ?? this.isFavorited,
       distanceKm: distanceKm,
       createdAt: createdAt,

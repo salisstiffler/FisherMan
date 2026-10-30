@@ -97,7 +97,57 @@ function initSchema() {
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       UNIQUE(user_id, spot_id)
     );
+
+    CREATE TABLE IF NOT EXISTS follows (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      follower_id INTEGER NOT NULL,
+      following_id INTEGER NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE(follower_id, following_id),
+      FOREIGN KEY (follower_id) REFERENCES users(id) ON DELETE CASCADE,
+      FOREIGN KEY (following_id) REFERENCES users(id) ON DELETE CASCADE
+    );
+
+    CREATE TABLE IF NOT EXISTS notifications (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      type TEXT NOT NULL,
+      actor_id INTEGER,
+      actor_nickname TEXT,
+      actor_avatar TEXT,
+      target_type TEXT,
+      target_id INTEGER,
+      content TEXT NOT NULL,
+      is_read INTEGER DEFAULT 0,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    );
+
+    CREATE TABLE IF NOT EXISTS spot_reviews (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      spot_id INTEGER NOT NULL,
+      user_id INTEGER NOT NULL,
+      rating INTEGER NOT NULL CHECK(rating >= 1 AND rating <= 5),
+      content TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE(spot_id, user_id),
+      FOREIGN KEY (spot_id) REFERENCES spots(id) ON DELETE CASCADE,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    );
   `);
+
+  // Add parent_id to comments if not exists
+  try {
+    db.exec(`ALTER TABLE comments ADD COLUMN parent_id INTEGER DEFAULT NULL`);
+  } catch (e) {
+    // Column already exists
+  }
+  // Add avg_rating to spots if not exists
+  try {
+    db.exec(`ALTER TABLE spots ADD COLUMN avg_rating REAL DEFAULT 0`);
+  } catch (e) {
+    // Column already exists
+  }
 
   // Seed default data if users table is empty
   const countRow = db.prepare('SELECT COUNT(*) as cnt FROM users').get();

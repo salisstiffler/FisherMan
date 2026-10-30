@@ -1,14 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+
 import '../../core/constants/app_colors.dart';
 import '../../core/network/api_client.dart';
+import '../../models/catch_model.dart';
+import '../../models/spot_model.dart';
 import '../../models/user_model.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/catches_provider.dart';
 import '../../providers/spots_provider.dart';
 import '../feed/catch_detail_screen.dart';
 import '../map/spot_detail_screen.dart';
+import 'follow_list_screen.dart';
 import 'edit_profile_screen.dart';
+import 'my_stats_chart.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -17,13 +22,14 @@ class ProfileScreen extends StatefulWidget {
   State<ProfileScreen> createState() => _ProfileScreenState();
 }
 
-class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProviderStateMixin {
+class _ProfileScreenState extends State<ProfileScreen>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+    _tabController = TabController(length: 3, vsync: this);
   }
 
   @override
@@ -31,6 +37,25 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
     _tabController.dispose();
     super.dispose();
   }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final userId = Provider.of<AuthProvider>(
+      context,
+      listen: false,
+    ).currentUser?.id;
+    if (userId != null && userId != _loadedUserId) {
+      _loadedUserId = userId;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          context.read<CatchesProvider>().fetchMyCatches(userId);
+        }
+      });
+    }
+  }
+
+  int? _loadedUserId;
 
   void _showServerSettings(BuildContext context) {
     final controller = TextEditingController(text: ApiClient().baseUrl);
@@ -42,7 +67,10 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('配置后端 API 服务地址（支持本地或云端 IP）：', style: TextStyle(fontSize: 13)),
+            const Text(
+              '配置后端 API 服务地址（支持本地或云端 IP）：',
+              style: TextStyle(fontSize: 13),
+            ),
             const SizedBox(height: 12),
             TextField(
               controller: controller,
@@ -73,6 +101,182 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
     );
   }
 
+  Future<void> _manageCatch(CatchModel item) async {
+    final catchesProvider = context.read<CatchesProvider>();
+    final action = await showModalBottomSheet<String>(
+      context: context,
+      builder: (context) => SafeArea(
+        child: Wrap(
+          children: [
+            ListTile(
+              leading: const Icon(Icons.edit_outlined),
+              title: const Text('编辑备注'),
+              onTap: () => Navigator.pop(context, 'edit'),
+            ),
+            ListTile(
+              leading: const Icon(
+                Icons.delete_outline,
+                color: AppColors.danger,
+              ),
+              title: const Text(
+                '删除战报',
+                style: TextStyle(color: AppColors.danger),
+              ),
+              onTap: () => Navigator.pop(context, 'delete'),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (!mounted || action == null) return;
+
+    if (action == 'edit') {
+      final controller = TextEditingController(text: item.notes);
+      final notes = await showDialog<String>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('编辑战报备注'),
+          content: TextField(
+            controller: controller,
+            maxLines: 4,
+            decoration: const InputDecoration(hintText: '记录这次作钓经历'),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('取消'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(context, controller.text.trim()),
+              child: const Text('保存'),
+            ),
+          ],
+        ),
+      );
+      controller.dispose();
+      if (notes == null) return;
+      final success = await catchesProvider.updateCatch(item.id, notes: notes);
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(success ? '战报已更新' : '更新失败，请重试')));
+      }
+      return;
+    }
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('删除战报'),
+        content: const Text('删除后无法恢复，确定继续吗？'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('取消'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('删除', style: TextStyle(color: AppColors.danger)),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    final success = await catchesProvider.deleteCatch(item.id);
+    if (mounted) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(success ? '战报已删除' : '删除失败，请重试')));
+    }
+  }
+
+  Future<void> _manageSpot(SpotModel spot) async {
+    final spotsProvider = context.read<SpotsProvider>();
+    final action = await showModalBottomSheet<String>(
+      context: context,
+      builder: (context) => SafeArea(
+        child: Wrap(
+          children: [
+            ListTile(
+              leading: const Icon(Icons.edit_outlined),
+              title: const Text('编辑钓点描述'),
+              onTap: () => Navigator.pop(context, 'edit'),
+            ),
+            ListTile(
+              leading: const Icon(
+                Icons.delete_outline,
+                color: AppColors.danger,
+              ),
+              title: const Text(
+                '删除钓点',
+                style: TextStyle(color: AppColors.danger),
+              ),
+              onTap: () => Navigator.pop(context, 'delete'),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (!mounted || action == null) return;
+    if (action == 'edit') {
+      final controller = TextEditingController(text: spot.description);
+      final description = await showDialog<String>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('编辑钓点描述'),
+          content: TextField(controller: controller, maxLines: 4),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('取消'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(context, controller.text.trim()),
+              child: const Text('保存'),
+            ),
+          ],
+        ),
+      );
+      controller.dispose();
+      if (description == null) return;
+      final success = await spotsProvider.updateSpot(
+        spot.id,
+        description: description,
+      );
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(success ? '钓点已更新' : '更新失败，请重试')));
+      }
+      return;
+    }
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('删除钓点'),
+        content: const Text('删除后无法恢复，确定继续吗？'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('取消'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('删除', style: TextStyle(color: AppColors.danger)),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    final success = await spotsProvider.deleteSpot(spot.id);
+    if (mounted) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(success ? '钓点已删除' : '删除失败，请重试')));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final auth = Provider.of<AuthProvider>(context);
@@ -82,8 +286,13 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
     final spotsProvider = Provider.of<SpotsProvider>(context);
 
     // Filter user's catches and favorite spots
-    final myCatches = catchesProvider.catches;
-    final favoriteSpots = spotsProvider.spots.where((s) => s.isFavorited).toList();
+    final myCatches = catchesProvider.myCatches;
+    final mySpots = spotsProvider.spots
+        .where((spot) => spot.creatorId == user?.id)
+        .toList();
+    final favoriteSpots = spotsProvider.spots
+        .where((s) => s.isFavorited)
+        .toList();
 
     return Scaffold(
       backgroundColor: AppColors.lightBackground,
@@ -139,11 +348,16 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                                 backgroundColor: Colors.white,
                                 child: CircleAvatar(
                                   radius: 30,
-                                  backgroundImage: (user?.avatar.isNotEmpty ?? false)
+                                  backgroundImage:
+                                      (user?.avatar.isNotEmpty ?? false)
                                       ? NetworkImage(user!.avatar)
                                       : null,
                                   child: (user?.avatar.isEmpty ?? true)
-                                      ? const Icon(Icons.phishing, size: 32, color: AppColors.primary)
+                                      ? const Icon(
+                                          Icons.phishing,
+                                          size: 32,
+                                          color: AppColors.primary,
+                                        )
                                       : null,
                                 ),
                               ),
@@ -164,10 +378,15 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                                         ),
                                         const SizedBox(width: 8),
                                         Container(
-                                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 8,
+                                            vertical: 2,
+                                          ),
                                           decoration: BoxDecoration(
                                             color: AppColors.goldenFish,
-                                            borderRadius: BorderRadius.circular(10),
+                                            borderRadius: BorderRadius.circular(
+                                              10,
+                                            ),
                                           ),
                                           child: Text(
                                             '${user?.fishingYears ?? 1}年钓龄',
@@ -183,12 +402,18 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                                     const SizedBox(height: 4),
                                     Text(
                                       '主攻: ${user?.targetFish ?? '鲫鱼、鲤鱼'}',
-                                      style: const TextStyle(color: AppColors.textLightSecondary, fontSize: 12),
+                                      style: const TextStyle(
+                                        color: AppColors.textLightSecondary,
+                                        fontSize: 12,
+                                      ),
                                     ),
                                     const SizedBox(height: 4),
                                     Text(
                                       user?.bio ?? '永不空军，钓获放流！',
-                                      style: const TextStyle(color: Colors.white70, fontSize: 12),
+                                      style: const TextStyle(
+                                        color: Colors.white70,
+                                        fontSize: 12,
+                                      ),
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
                                     ),
@@ -196,11 +421,17 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                                 ),
                               ),
                               IconButton(
-                                icon: const Icon(Icons.edit, color: Colors.white70, size: 20),
+                                icon: const Icon(
+                                  Icons.edit,
+                                  color: Colors.white70,
+                                  size: 20,
+                                ),
                                 onPressed: () {
                                   Navigator.push(
                                     context,
-                                    MaterialPageRoute(builder: (_) => const EditProfileScreen()),
+                                    MaterialPageRoute(
+                                      builder: (_) => const EditProfileScreen(),
+                                    ),
                                   );
                                 },
                               ),
@@ -211,19 +442,67 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                     ),
                     const SizedBox(height: 16),
 
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        TextButton(
+                          onPressed: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => FollowListScreen(
+                                userId: user?.id ?? 0,
+                                showFollowers: false,
+                              ),
+                            ),
+                          ),
+                          child: Text('关注 ${stats.followingCount}'),
+                        ),
+                        TextButton(
+                          onPressed: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => FollowListScreen(
+                                userId: user?.id ?? 0,
+                                showFollowers: true,
+                              ),
+                            ),
+                          ),
+                          child: Text('粉丝 ${stats.followersCount}'),
+                        ),
+                      ],
+                    ),
+
                     // Angler Stats Grid
                     Row(
                       children: [
-                        _buildStatBox('累计渔获', '${stats.catchesCount}尾', Icons.phishing),
+                        _buildStatBox(
+                          '累计渔获',
+                          '${stats.catchesCount}尾',
+                          Icons.phishing,
+                        ),
                         const SizedBox(width: 8),
-                        _buildStatBox('总捕获量', '${stats.totalWeightKg}kg', Icons.scale),
+                        _buildStatBox(
+                          '总捕获量',
+                          '${stats.totalWeightKg}kg',
+                          Icons.scale,
+                        ),
                         const SizedBox(width: 8),
-                        _buildStatBox('最大单尾', '${stats.maxWeightKg}kg', Icons.military_tech),
+                        _buildStatBox(
+                          '最大单尾',
+                          '${stats.maxWeightKg}kg',
+                          Icons.military_tech,
+                        ),
                         const SizedBox(width: 8),
-                        _buildStatBox('开拓钓点', '${stats.spotsCreated}个', Icons.place),
+                        _buildStatBox(
+                          '开拓钓点',
+                          '${stats.spotsCreated}个',
+                          Icons.place,
+                        ),
                       ],
                     ),
                     const SizedBox(height: 16),
+
+                    if (!auth.isGuest) const MyStatsChart(),
 
                     // Badges Wall
                     if (stats.badges.isNotEmpty) ...[
@@ -231,7 +510,10 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                         alignment: Alignment.centerLeft,
                         child: Text(
                           '荣耀钓王勋章 (${stats.badges.length})',
-                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                          ),
                         ),
                       ),
                       const SizedBox(height: 8),
@@ -239,7 +521,10 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                         children: stats.badges.map((b) {
                           return Container(
                             margin: const EdgeInsets.only(right: 8),
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 6,
+                            ),
                             decoration: BoxDecoration(
                               color: Colors.white,
                               borderRadius: BorderRadius.circular(10),
@@ -247,9 +532,18 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                             ),
                             child: Row(
                               children: [
-                                Text(b.icon, style: const TextStyle(fontSize: 16)),
+                                Text(
+                                  b.icon,
+                                  style: const TextStyle(fontSize: 16),
+                                ),
                                 const SizedBox(width: 4),
-                                Text(b.name, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                                Text(
+                                  b.name,
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
                               ],
                             ),
                           );
@@ -271,6 +565,7 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                         unselectedLabelColor: AppColors.textSecondary,
                         tabs: [
                           Tab(text: '我的战报 (${myCatches.length})'),
+                          Tab(text: '创建钓点 (${mySpots.length})'),
                           Tab(text: '收藏钓点 (${favoriteSpots.length})'),
                         ],
                       ),
@@ -287,10 +582,16 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
             // Catches List
             myCatches.isEmpty
                 ? const Center(
-                    child: Text('暂无战报，快去发布今日首条大鱼！', style: TextStyle(color: AppColors.textMuted)),
+                    child: Text(
+                      '暂无战报，快去发布今日首条大鱼！',
+                      style: TextStyle(color: AppColors.textMuted),
+                    ),
                   )
                 : ListView.builder(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
                     itemCount: myCatches.length,
                     itemBuilder: (context, index) {
                       final item = myCatches[index];
@@ -306,15 +607,64 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                               fit: BoxFit.cover,
                             ),
                           ),
-                          title: Text('${item.fishType} • ${item.weightKg} kg', style: const TextStyle(fontWeight: FontWeight.bold)),
-                          subtitle: Text('${item.spotName} • ${item.fishingMethod}'),
+                          title: Text(
+                            '${item.fishType} • ${item.weightKg} kg',
+                            style: const TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                          subtitle: Text(
+                            '${item.spotName} • ${item.fishingMethod}',
+                          ),
                           trailing: const Icon(Icons.chevron_right),
                           onTap: () {
                             Navigator.push(
                               context,
-                              MaterialPageRoute(builder: (_) => CatchDetailScreen(catchRecord: item)),
+                              MaterialPageRoute(
+                                builder: (_) =>
+                                    CatchDetailScreen(catchRecord: item),
+                              ),
                             );
                           },
+                          onLongPress: () => _manageCatch(item),
+                        ),
+                      );
+                    },
+                  ),
+
+            mySpots.isEmpty
+                ? const Center(
+                    child: Text(
+                      '暂无创建的钓点',
+                      style: TextStyle(color: AppColors.textMuted),
+                    ),
+                  )
+                : ListView.builder(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
+                    itemCount: mySpots.length,
+                    itemBuilder: (context, index) {
+                      final spot = mySpots[index];
+                      return Card(
+                        margin: const EdgeInsets.only(bottom: 10),
+                        child: ListTile(
+                          leading: const Icon(
+                            Icons.place,
+                            color: AppColors.primary,
+                          ),
+                          title: Text(
+                            spot.name,
+                            style: const TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                          subtitle: Text(spot.address),
+                          trailing: const Icon(Icons.chevron_right),
+                          onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => SpotDetailScreen(spot: spot),
+                            ),
+                          ),
+                          onLongPress: () => _manageSpot(spot),
                         ),
                       );
                     },
@@ -323,10 +673,16 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
             // Favorites List
             favoriteSpots.isEmpty
                 ? const Center(
-                    child: Text('暂无收藏钓点，在地图上点击红心收藏心仪水域', style: TextStyle(color: AppColors.textMuted)),
+                    child: Text(
+                      '暂无收藏钓点，在地图上点击红心收藏心仪水域',
+                      style: TextStyle(color: AppColors.textMuted),
+                    ),
                   )
                 : ListView.builder(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
                     itemCount: favoriteSpots.length,
                     itemBuilder: (context, index) {
                       final spot = favoriteSpots[index];
@@ -342,13 +698,20 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                               fit: BoxFit.cover,
                             ),
                           ),
-                          title: Text(spot.name, style: const TextStyle(fontWeight: FontWeight.bold)),
-                          subtitle: Text('${spot.waterType} • ${spot.chargeType} • 水深${spot.depthMeters}m'),
+                          title: Text(
+                            spot.name,
+                            style: const TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                          subtitle: Text(
+                            '${spot.waterType} • ${spot.chargeType} • 水深${spot.depthMeters}m',
+                          ),
                           trailing: const Icon(Icons.chevron_right),
                           onTap: () {
                             Navigator.push(
                               context,
-                              MaterialPageRoute(builder: (_) => SpotDetailScreen(spot: spot)),
+                              MaterialPageRoute(
+                                builder: (_) => SpotDetailScreen(spot: spot),
+                              ),
                             );
                           },
                         ),
@@ -374,9 +737,18 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
           children: [
             Icon(icon, size: 18, color: AppColors.primary),
             const SizedBox(height: 4),
-            Text(value, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+            Text(
+              value,
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+            ),
             const SizedBox(height: 2),
-            Text(title, style: const TextStyle(color: AppColors.textSecondary, fontSize: 10)),
+            Text(
+              title,
+              style: const TextStyle(
+                color: AppColors.textSecondary,
+                fontSize: 10,
+              ),
+            ),
           ],
         ),
       ),

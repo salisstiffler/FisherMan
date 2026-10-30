@@ -1,9 +1,12 @@
 import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
+
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_constants.dart';
+import '../../core/network/api_client.dart';
 import '../../models/spot_model.dart';
 import '../../providers/catches_provider.dart';
 import '../../providers/spots_provider.dart';
@@ -27,7 +30,11 @@ class _PublishCatchScreenState extends State<PublishCatchScreen> {
 
   final ImagePicker _picker = ImagePicker();
   Uint8List? _pickedBytes;
-  String _activePhotoUrl = 'https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=600';
+  String? _pickedFilename;
+  bool _isUploading = false;
+  bool _isSubmitting = false;
+  String _activePhotoUrl =
+      'https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=600';
 
   int? _selectedSpotId;
   String _selectedSpotName = '钱塘江野钓点';
@@ -78,35 +85,81 @@ class _PublishCatchScreenState extends State<PublishCatchScreen> {
         final bytes = await file.readAsBytes();
         setState(() {
           _pickedBytes = bytes;
+          _pickedFilename = file.name;
           _activePhotoUrl = file.path;
         });
 
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(source == ImageSource.camera ? '📷 拍摄照片成功！' : '🖼️ 已从相册选取大鱼实拍图！')),
+            SnackBar(
+              content: Text(
+                source == ImageSource.camera
+                    ? '📷 拍摄照片成功！'
+                    : '🖼️ 已从相册选取大鱼实拍图！',
+              ),
+            ),
           );
         }
       }
     } catch (e) {
       debugPrint('Image picking error: $e');
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('选择图片失败: $e')),
-        );
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('选择图片失败: $e')));
       }
     }
   }
 
-  void _submit() async {
-    if (!_formKey.currentState!.validate()) return;
+  Future<void> _submit() async {
+    if (_isSubmitting || !_formKey.currentState!.validate()) return;
 
+    final catchesProvider = Provider.of<CatchesProvider>(
+      context,
+      listen: false,
+    );
     final weight = double.tryParse(_weightController.text) ?? 1.0;
     final length = double.tryParse(_lengthController.text) ?? 0.0;
     final spotName = _customSpotNameController.text.trim().isNotEmpty
         ? _customSpotNameController.text.trim()
         : _selectedSpotName;
 
-    final catchesProvider = Provider.of<CatchesProvider>(context, listen: false);
+    String? photoUrl = _activePhotoUrl;
+    if (_pickedBytes != null) {
+      setState(() {
+        _isUploading = true;
+        _isSubmitting = true;
+      });
+      final upload = await ApiClient().uploadImage(
+        _pickedBytes!,
+        _pickedFilename ?? 'catch.jpg',
+      );
+      if (mounted) {
+        setState(() => _isUploading = false);
+      }
+      if (!upload.success || upload.data is! Map) {
+        if (mounted) {
+          setState(() => _isSubmitting = false);
+          ScaffoldMessenger.of(context)
+              .showSnackBar(SnackBar(content: Text(upload.message)));
+        }
+        return;
+      }
+      final uploadedPath = upload.data['url'] as String?;
+      if (uploadedPath == null || uploadedPath.isEmpty) {
+        if (mounted) {
+          setState(() => _isSubmitting = false);
+          ScaffoldMessenger.of(context)
+              .showSnackBar(const SnackBar(content: Text('服务器未返回图片地址，请重试')));
+        }
+        return;
+      }
+      photoUrl = uploadedPath.startsWith('http')
+          ? uploadedPath
+          : Uri.parse(ApiClient().baseUrl).resolve(uploadedPath).toString();
+    } else {
+      setState(() => _isSubmitting = true);
+    }
+
     final success = await catchesProvider.publishCatch(
       spotId: _selectedSpotId,
       spotName: spotName,
@@ -121,13 +174,14 @@ class _PublishCatchScreenState extends State<PublishCatchScreen> {
       fishingMethod: _selectedMethod,
       depthM: _depth,
       bait: _baitController.text.trim(),
-      photoUrl: _activePhotoUrl,
+      photoUrl: photoUrl,
       notes: _notesController.text.trim().isNotEmpty
           ? _notesController.text.trim()
           : '今日出钓大丰收！大鱼出水那一刻手感太棒了！',
     );
 
     if (mounted) {
+      setState(() => _isSubmitting = false);
       if (success) {
         showDialog(
           context: context,
@@ -150,9 +204,8 @@ class _PublishCatchScreenState extends State<PublishCatchScreen> {
           ),
         );
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('发布战报失败，请稍后再试')),
-        );
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text('发布战报失败，请稍后再试')));
       }
     }
   }
@@ -163,9 +216,7 @@ class _PublishCatchScreenState extends State<PublishCatchScreen> {
     final spots = spotsProvider.spots;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('发布渔获战报'),
-      ),
+      appBar: AppBar(title: const Text('发布渔获战报')),
       body: Form(
         key: _formKey,
         child: SingleChildScrollView(
@@ -174,7 +225,10 @@ class _PublishCatchScreenState extends State<PublishCatchScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Photo Picker Section (Camera & Gallery)
-              const Text('渔获实拍照片 *', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+              const Text(
+                '渔获实拍照片 *',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+              ),
               const SizedBox(height: 8),
               Container(
                 width: double.infinity,
@@ -189,7 +243,9 @@ class _PublishCatchScreenState extends State<PublishCatchScreen> {
                       Stack(
                         children: [
                           ClipRRect(
-                            borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+                            borderRadius: const BorderRadius.vertical(
+                              top: Radius.circular(16),
+                            ),
                             child: Image.memory(
                               _pickedBytes!,
                               height: 190,
@@ -203,10 +259,15 @@ class _PublishCatchScreenState extends State<PublishCatchScreen> {
                             child: CircleAvatar(
                               backgroundColor: Colors.black54,
                               child: IconButton(
-                                icon: const Icon(Icons.close, color: Colors.white, size: 18),
+                                icon: const Icon(
+                                  Icons.close,
+                                  color: Colors.white,
+                                  size: 18,
+                                ),
                                 onPressed: () {
                                   setState(() {
                                     _pickedBytes = null;
+                                    _pickedFilename = null;
                                     _activePhotoUrl = 'https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=600';
                                   });
                                 },
@@ -217,12 +278,21 @@ class _PublishCatchScreenState extends State<PublishCatchScreen> {
                             bottom: 8,
                             left: 8,
                             child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 4,
+                              ),
                               decoration: BoxDecoration(
                                 color: Colors.black.withValues(alpha: 0.7),
                                 borderRadius: BorderRadius.circular(6),
                               ),
-                              child: const Text('已选实拍照片', style: TextStyle(color: Colors.white, fontSize: 11)),
+                              child: const Text(
+                                '已选实拍照片',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 11,
+                                ),
+                              ),
                             ),
                           ),
                         ],
@@ -232,20 +302,40 @@ class _PublishCatchScreenState extends State<PublishCatchScreen> {
                         padding: const EdgeInsets.symmetric(vertical: 20.0),
                         child: Column(
                           children: [
-                            const Icon(Icons.add_a_photo_outlined, size: 48, color: AppColors.primary),
+                            const Icon(
+                              Icons.add_a_photo_outlined,
+                              size: 48,
+                              color: AppColors.primary,
+                            ),
                             const SizedBox(height: 8),
                             const Text(
                               '请拍照记录或从相册选择大鱼实拍照',
-                              style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: AppColors.textSecondary,
+                              ),
                             ),
                             const SizedBox(height: 4),
                             Text(
                               '支持拍摄、相册上传与经典大鱼样本',
-                              style: TextStyle(fontSize: 11, color: AppColors.textMuted.withValues(alpha: 0.8)),
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: AppColors.textMuted.withValues(
+                                  alpha: 0.8,
+                                ),
+                              ),
                             ),
                           ],
                         ),
                       ),
+
+                    if (_isUploading) ...[
+                      const LinearProgressIndicator(),
+                      const Padding(
+                        padding: EdgeInsets.only(top: 6),
+                        child: Text('正在上传照片…', style: TextStyle(fontSize: 12)),
+                      ),
+                    ],
 
                     // Action buttons: Camera vs Gallery
                     Padding(
@@ -273,19 +363,41 @@ class _PublishCatchScreenState extends State<PublishCatchScreen> {
 
                     // Preset Quick Sample Photos
                     Padding(
-                      padding: const EdgeInsets.only(left: 12, right: 12, bottom: 12),
+                      padding: const EdgeInsets.only(
+                        left: 12,
+                        right: 12,
+                        bottom: 12,
+                      ),
                       child: Row(
                         children: [
-                          const Text('样本图: ', style: TextStyle(fontSize: 11, color: AppColors.textSecondary)),
+                          const Text(
+                            '样本图: ',
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: AppColors.textSecondary,
+                            ),
+                          ),
                           Expanded(
                             child: SingleChildScrollView(
                               scrollDirection: Axis.horizontal,
                               child: Row(
                                 children: [
-                                  _buildSampleChip('大翘嘴', 'https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=600'),
-                                  _buildSampleChip('黄金板鲫', 'https://images.unsplash.com/photo-1534447677768-be436bb09401?w=600'),
-                                  _buildSampleChip('加州鲈', 'https://images.unsplash.com/photo-1516684732162-798a0062be99?w=600'),
-                                  _buildSampleChip('斑斓马口', 'https://images.unsplash.com/photo-1508873696983-2df5293cb325?w=600'),
+                                  _buildSampleChip(
+                                    '大翘嘴',
+                                    'https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=600',
+                                  ),
+                                  _buildSampleChip(
+                                    '黄金板鲫',
+                                    'https://images.unsplash.com/photo-1534447677768-be436bb09401?w=600',
+                                  ),
+                                  _buildSampleChip(
+                                    '加州鲈',
+                                    'https://images.unsplash.com/photo-1516684732162-798a0062be99?w=600',
+                                  ),
+                                  _buildSampleChip(
+                                    '斑斓马口',
+                                    'https://images.unsplash.com/photo-1508873696983-2df5293cb325?w=600',
+                                  ),
                                 ],
                               ),
                             ),
@@ -299,7 +411,10 @@ class _PublishCatchScreenState extends State<PublishCatchScreen> {
               const SizedBox(height: 16),
 
               // Fish Species Selection
-              const Text('目标鱼种 *', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+              const Text(
+                '目标鱼种 *',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+              ),
               const SizedBox(height: 8),
               Wrap(
                 spacing: 8,
@@ -313,7 +428,9 @@ class _PublishCatchScreenState extends State<PublishCatchScreen> {
                     backgroundColor: Colors.white,
                     labelStyle: TextStyle(
                       color: isSelected ? Colors.white : AppColors.textPrimary,
-                      fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                      fontWeight: isSelected
+                          ? FontWeight.bold
+                          : FontWeight.normal,
                       fontSize: 12,
                     ),
                     onSelected: (_) => setState(() => _selectedFish = fish),
@@ -328,24 +445,34 @@ class _PublishCatchScreenState extends State<PublishCatchScreen> {
                   Expanded(
                     child: TextFormField(
                       controller: _weightController,
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
                       decoration: const InputDecoration(
                         labelText: '单尾重量 (kg) *',
                         suffixText: '公斤',
                         prefixIcon: Icon(Icons.scale, color: AppColors.primary),
                       ),
-                      validator: (v) => (v == null || double.tryParse(v) == null) ? '请输入重量' : null,
+                      validator: (v) =>
+                          (v == null || double.tryParse(v) == null)
+                          ? '请输入重量'
+                          : null,
                     ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: TextFormField(
                       controller: _lengthController,
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
                       decoration: const InputDecoration(
                         labelText: '体长 (cm)',
                         suffixText: '厘米',
-                        prefixIcon: Icon(Icons.straighten, color: AppColors.primary),
+                        prefixIcon: Icon(
+                          Icons.straighten,
+                          color: AppColors.primary,
+                        ),
                       ),
                     ),
                   ),
@@ -354,7 +481,10 @@ class _PublishCatchScreenState extends State<PublishCatchScreen> {
               const SizedBox(height: 16),
 
               // Fishing Method Selection
-              const Text('作钓钓法 *', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+              const Text(
+                '作钓钓法 *',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+              ),
               const SizedBox(height: 8),
               Wrap(
                 spacing: 8,
@@ -367,7 +497,9 @@ class _PublishCatchScreenState extends State<PublishCatchScreen> {
                     backgroundColor: Colors.white,
                     labelStyle: TextStyle(
                       color: isSelected ? Colors.white : AppColors.textPrimary,
-                      fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                      fontWeight: isSelected
+                          ? FontWeight.bold
+                          : FontWeight.normal,
                       fontSize: 12,
                     ),
                     onSelected: (_) => setState(() => _selectedMethod = method),
@@ -377,19 +509,28 @@ class _PublishCatchScreenState extends State<PublishCatchScreen> {
               const SizedBox(height: 16),
 
               // Spot Link
-              const Text('作钓水域与具体位置', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+              const Text(
+                '作钓水域与具体位置',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+              ),
               const SizedBox(height: 8),
               if (spots.isNotEmpty)
                 DropdownButtonFormField<int?>(
                   initialValue: _selectedSpotId ?? spots.first.id,
                   decoration: const InputDecoration(
                     labelText: '选择关联钓点',
-                    prefixIcon: Icon(Icons.location_on, color: AppColors.primary),
+                    prefixIcon: Icon(
+                      Icons.location_on,
+                      color: AppColors.primary,
+                    ),
                   ),
                   items: spots.map((s) {
                     return DropdownMenuItem<int?>(
                       value: s.id,
-                      child: Text('${s.name} (${s.waterType})', overflow: TextOverflow.ellipsis),
+                      child: Text(
+                        '${s.name} (${s.waterType})',
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     );
                   }).toList(),
                   onChanged: (val) {
@@ -414,7 +555,9 @@ class _PublishCatchScreenState extends State<PublishCatchScreen> {
                   labelText: '或自定义秘密水域名称',
                   hintText: '如: 淳安老家门前小水塘',
                   prefixIcon: const Icon(Icons.edit_location_alt_outlined),
-                  hintStyle: TextStyle(color: AppColors.textMuted.withValues(alpha: 0.6)),
+                  hintStyle: TextStyle(
+                    color: AppColors.textMuted.withValues(alpha: 0.6),
+                  ),
                 ),
               ),
               const SizedBox(height: 16),
@@ -426,7 +569,10 @@ class _PublishCatchScreenState extends State<PublishCatchScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('作钓水深: ${_depth.toStringAsFixed(1)}m', style: const TextStyle(fontWeight: FontWeight.w600)),
+                        Text(
+                          '作钓水深: ${_depth.toStringAsFixed(1)}m',
+                          style: const TextStyle(fontWeight: FontWeight.w600),
+                        ),
                         Slider(
                           value: _depth,
                           min: 0.5,
@@ -466,9 +612,21 @@ class _PublishCatchScreenState extends State<PublishCatchScreen> {
                 width: double.infinity,
                 height: 50,
                 child: ElevatedButton.icon(
-                  icon: const Icon(Icons.send_rounded),
-                  label: const Text('发布战报 • 荣耀分享', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                  onPressed: _submit,
+                  icon: _isSubmitting
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.send_rounded),
+                  label: Text(
+                    _isSubmitting ? '正在处理…' : '发布战报 • 荣耀分享',
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  onPressed: _isSubmitting ? null : _submit,
                 ),
               ),
               const SizedBox(height: 30),
@@ -485,7 +643,9 @@ class _PublishCatchScreenState extends State<PublishCatchScreen> {
       padding: const EdgeInsets.only(right: 6.0),
       child: ActionChip(
         label: Text(label),
-        backgroundColor: isCurrent ? AppColors.primary : AppColors.lightBackground,
+        backgroundColor: isCurrent
+            ? AppColors.primary
+            : AppColors.lightBackground,
         labelStyle: TextStyle(
           fontSize: 10,
           color: isCurrent ? Colors.white : AppColors.textPrimary,
@@ -494,6 +654,7 @@ class _PublishCatchScreenState extends State<PublishCatchScreen> {
         onPressed: () {
           setState(() {
             _pickedBytes = null;
+            _pickedFilename = null;
             _activePhotoUrl = url;
           });
         },

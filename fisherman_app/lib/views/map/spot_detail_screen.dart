@@ -1,14 +1,100 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+
 import '../../core/constants/app_colors.dart';
+import '../../core/network/api_client.dart';
+import '../../core/network/api_endpoints.dart';
 import '../../models/spot_model.dart';
 import '../../providers/spots_provider.dart';
 import '../publish/publish_catch_screen.dart';
+import '../profile/user_profile_screen.dart';
 
-class SpotDetailScreen extends StatelessWidget {
+class SpotDetailScreen extends StatefulWidget {
   final SpotModel spot;
 
   const SpotDetailScreen({super.key, required this.spot});
+
+  @override
+  State<SpotDetailScreen> createState() => _SpotDetailScreenState();
+}
+
+class _SpotDetailScreenState extends State<SpotDetailScreen> {
+  late Future<ApiResponse<dynamic>> _reviewsFuture;
+
+  SpotModel get spot => widget.spot;
+
+  @override
+  void initState() {
+    super.initState();
+    _reviewsFuture = _loadReviews();
+  }
+
+  Future<ApiResponse<dynamic>> _loadReviews() {
+    return ApiClient().get(ApiEndpoints.spotReviews(spot.id));
+  }
+
+  Future<void> _addReview() async {
+    var rating = 5;
+    final controller = TextEditingController();
+    final review = await showDialog<Map<String, dynamic>>(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text('评价钓点'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              DropdownButtonFormField<int>(
+                initialValue: rating,
+                decoration: const InputDecoration(labelText: '评分'),
+                items: List.generate(
+                  5,
+                  (index) => DropdownMenuItem(
+                    value: index + 1,
+                    child: Text('${index + 1} 星'),
+                  ),
+                ),
+                onChanged: (value) {
+                  if (value != null) setDialogState(() => rating = value);
+                },
+              ),
+              TextField(
+                controller: controller,
+                maxLines: 3,
+                decoration: const InputDecoration(labelText: '评价内容（选填）'),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('取消'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(context, {
+                'rating': rating,
+                'content': controller.text.trim(),
+              }),
+              child: const Text('提交'),
+            ),
+          ],
+        ),
+      ),
+    );
+    controller.dispose();
+    if (review == null || !mounted) return;
+
+    final response = await ApiClient().post(
+      ApiEndpoints.spotReviews(spot.id),
+      body: review,
+    );
+    if (!mounted) return;
+    if (response.success) {
+      setState(() => _reviewsFuture = _loadReviews());
+    }
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(response.message)));
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -35,9 +121,7 @@ class SpotDetailScreen extends StatelessWidget {
                       color: Colors.white,
                       fontWeight: FontWeight.bold,
                       fontSize: 16,
-                      shadows: [
-                        Shadow(color: Colors.black54, blurRadius: 4),
-                      ],
+                      shadows: [Shadow(color: Colors.black54, blurRadius: 4)],
                     ),
                   ),
                   background: Stack(
@@ -48,7 +132,11 @@ class SpotDetailScreen extends StatelessWidget {
                         fit: BoxFit.cover,
                         errorBuilder: (_, _, _) => Container(
                           color: AppColors.primaryDark,
-                          child: const Icon(Icons.water, color: Colors.white, size: 64),
+                          child: const Icon(
+                            Icons.water,
+                            color: Colors.white,
+                            size: 64,
+                          ),
                         ),
                       ),
                       Container(
@@ -70,7 +158,11 @@ class SpotDetailScreen extends StatelessWidget {
                 leading: IconButton(
                   icon: const CircleAvatar(
                     backgroundColor: Colors.black45,
-                    child: Icon(Icons.arrow_back, color: Colors.white, size: 20),
+                    child: Icon(
+                      Icons.arrow_back,
+                      color: Colors.white,
+                      size: 20,
+                    ),
                   ),
                   onPressed: () => Navigator.pop(context),
                 ),
@@ -79,8 +171,12 @@ class SpotDetailScreen extends StatelessWidget {
                     icon: CircleAvatar(
                       backgroundColor: Colors.black45,
                       child: Icon(
-                        currentSpot.isFavorited ? Icons.favorite : Icons.favorite_border,
-                        color: currentSpot.isFavorited ? AppColors.danger : Colors.white,
+                        currentSpot.isFavorited
+                            ? Icons.favorite
+                            : Icons.favorite_border,
+                        color: currentSpot.isFavorited
+                            ? AppColors.danger
+                            : Colors.white,
                         size: 20,
                       ),
                     ),
@@ -88,7 +184,9 @@ class SpotDetailScreen extends StatelessWidget {
                       spotsProvider.toggleFavorite(currentSpot.id);
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
-                          content: Text(currentSpot.isFavorited ? '已取消收藏' : '已加入我的收藏钓点'),
+                          content: Text(
+                            currentSpot.isFavorited ? '已取消收藏' : '已加入我的收藏钓点',
+                          ),
                           duration: const Duration(seconds: 1),
                         ),
                       );
@@ -109,13 +207,58 @@ class SpotDetailScreen extends StatelessWidget {
                         spacing: 8,
                         runSpacing: 8,
                         children: [
-                          _buildTag(currentSpot.waterType, AppColors.primary, Icons.water_drop),
-                          _buildTag(currentSpot.chargeType, AppColors.secondary, Icons.attach_money),
-                          _buildTag('水深 ~${currentSpot.depthMeters}米', AppColors.goldenFish, Icons.straighten),
-                          _buildTag('${currentSpot.likesCount} 人收藏', AppColors.textSecondary, Icons.favorite),
+                          _buildTag(
+                            currentSpot.waterType,
+                            AppColors.primary,
+                            Icons.water_drop,
+                          ),
+                          _buildTag(
+                            currentSpot.chargeType,
+                            AppColors.secondary,
+                            Icons.attach_money,
+                          ),
+                          _buildTag(
+                            '水深 ~${currentSpot.depthMeters}米',
+                            AppColors.goldenFish,
+                            Icons.straighten,
+                          ),
+                          _buildTag(
+                            '${currentSpot.likesCount} 人收藏',
+                            AppColors.textSecondary,
+                            Icons.favorite,
+                          ),
                         ],
                       ),
                       const SizedBox(height: 16),
+
+                      _buildReviewsSection(),
+                      const SizedBox(height: 16),
+
+                      if (currentSpot.creatorId != null)
+                        ListTile(
+                          contentPadding: EdgeInsets.zero,
+                          leading: CircleAvatar(
+                            backgroundColor: AppColors.primaryLight,
+                            backgroundImage:
+                                currentSpot.creatorAvatar.isNotEmpty
+                                ? NetworkImage(currentSpot.creatorAvatar)
+                                : null,
+                            child: currentSpot.creatorAvatar.isEmpty
+                                ? const Icon(Icons.person, color: Colors.white)
+                                : null,
+                          ),
+                          title: Text(currentSpot.creatorNickname),
+                          subtitle: const Text('钓点创建者 · 查看主页'),
+                          trailing: const Icon(Icons.chevron_right),
+                          onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => UserProfileScreen(
+                                userId: currentSpot.creatorId!,
+                              ),
+                            ),
+                          ),
+                        ),
 
                       // Fee Card
                       Card(
@@ -124,15 +267,31 @@ class SpotDetailScreen extends StatelessWidget {
                           padding: const EdgeInsets.all(14.0),
                           child: Row(
                             children: [
-                              const Icon(Icons.payments_outlined, color: AppColors.primary, size: 24),
+                              const Icon(
+                                Icons.payments_outlined,
+                                color: AppColors.primary,
+                                size: 24,
+                              ),
                               const SizedBox(width: 12),
                               Expanded(
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    const Text('收费与管理政策', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                                    const Text(
+                                      '收费与管理政策',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 14,
+                                      ),
+                                    ),
                                     const SizedBox(height: 2),
-                                    Text(currentSpot.feeDesc, style: const TextStyle(color: AppColors.textSecondary, fontSize: 13)),
+                                    Text(
+                                      currentSpot.feeDesc,
+                                      style: const TextStyle(
+                                        color: AppColors.textSecondary,
+                                        fontSize: 13,
+                                      ),
+                                    ),
                                   ],
                                 ),
                               ),
@@ -145,7 +304,10 @@ class SpotDetailScreen extends StatelessWidget {
                       // Target Fish Distribution
                       const Text(
                         '出鱼鱼种与标点特征',
-                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
                       ),
                       const SizedBox(height: 10),
                       Wrap(
@@ -153,16 +315,24 @@ class SpotDetailScreen extends StatelessWidget {
                         runSpacing: 8,
                         children: currentSpot.fishTypes.map((fish) {
                           return Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 6,
+                            ),
                             decoration: BoxDecoration(
                               color: AppColors.primary.withValues(alpha: 0.08),
                               borderRadius: BorderRadius.circular(20),
-                              border: Border.all(color: AppColors.primary.withValues(alpha: 0.2)),
+                              border: Border.all(
+                                color: AppColors.primary.withValues(alpha: 0.2),
+                              ),
                             ),
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                const Text('🐟 ', style: TextStyle(fontSize: 13)),
+                                const Text(
+                                  '🐟 ',
+                                  style: TextStyle(fontSize: 13),
+                                ),
                                 Text(
                                   fish,
                                   style: const TextStyle(
@@ -181,7 +351,10 @@ class SpotDetailScreen extends StatelessWidget {
                       // Spot Description & Notes
                       const Text(
                         '钓点实地环境详解',
-                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
                       ),
                       const SizedBox(height: 8),
                       Container(
@@ -193,7 +366,11 @@ class SpotDetailScreen extends StatelessWidget {
                         ),
                         child: Text(
                           currentSpot.description,
-                          style: const TextStyle(fontSize: 14, height: 1.6, color: AppColors.textPrimary),
+                          style: const TextStyle(
+                            fontSize: 14,
+                            height: 1.6,
+                            color: AppColors.textPrimary,
+                          ),
                         ),
                       ),
                       const SizedBox(height: 20),
@@ -201,7 +378,10 @@ class SpotDetailScreen extends StatelessWidget {
                       // Angler Safety & Rules
                       const Text(
                         '作钓守则与文明约定',
-                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
                       ),
                       const SizedBox(height: 8),
                       Container(
@@ -214,12 +394,20 @@ class SpotDetailScreen extends StatelessWidget {
                         child: Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Icon(Icons.eco, color: Color(0xFFD97706), size: 20),
+                            const Icon(
+                              Icons.eco,
+                              color: Color(0xFFD97706),
+                              size: 20,
+                            ),
                             const SizedBox(width: 8),
                             Expanded(
                               child: Text(
                                 currentSpot.rules,
-                                style: const TextStyle(fontSize: 13, color: Color(0xFF92400E), height: 1.4),
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  color: Color(0xFF92400E),
+                                  height: 1.4,
+                                ),
                               ),
                             ),
                           ],
@@ -230,7 +418,10 @@ class SpotDetailScreen extends StatelessWidget {
                       // Location & Navigation
                       const Text(
                         '地理位置与导航',
-                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
                       ),
                       const SizedBox(height: 8),
                       Card(
@@ -242,35 +433,56 @@ class SpotDetailScreen extends StatelessWidget {
                             children: [
                               Row(
                                 children: [
-                                  const Icon(Icons.place, color: AppColors.primary, size: 20),
+                                  const Icon(
+                                    Icons.place,
+                                    color: AppColors.primary,
+                                    size: 20,
+                                  ),
                                   const SizedBox(width: 8),
                                   Expanded(
                                     child: Text(
                                       currentSpot.address,
-                                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                                      style: const TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w500,
+                                      ),
                                     ),
                                   ),
                                 ],
                               ),
                               const Divider(height: 20),
                               Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
                                 children: [
                                   Text(
                                     'GPS: ${currentSpot.lat.toStringAsFixed(4)}, ${currentSpot.lng.toStringAsFixed(4)}',
-                                    style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      color: AppColors.textSecondary,
+                                    ),
                                   ),
                                   ElevatedButton.icon(
-                                    icon: const Icon(Icons.navigation_outlined, size: 16),
+                                    icon: const Icon(
+                                      Icons.navigation_outlined,
+                                      size: 16,
+                                    ),
                                     label: const Text('路线导航'),
                                     style: ElevatedButton.styleFrom(
-                                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 14,
+                                        vertical: 8,
+                                      ),
                                       textStyle: const TextStyle(fontSize: 13),
                                     ),
                                     onPressed: () {
-                                      ScaffoldMessenger.of(context).showSnackBar(
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
                                         SnackBar(
-                                          content: Text('已复制钓点坐标: ${currentSpot.lat}, ${currentSpot.lng}，正在规划出钓路线'),
+                                          content: Text(
+                                            '已复制钓点坐标: ${currentSpot.lat}, ${currentSpot.lng}，正在规划出钓路线',
+                                          ),
                                         ),
                                       );
                                     },
@@ -294,7 +506,9 @@ class SpotDetailScreen extends StatelessWidget {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (_) => PublishCatchScreen(preSelectedSpot: currentSpot),
+                                builder: (_) => PublishCatchScreen(
+                                  preSelectedSpot: currentSpot,
+                                ),
                               ),
                             );
                           },
@@ -306,6 +520,64 @@ class SpotDetailScreen extends StatelessWidget {
                 ),
               ),
             ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildReviewsSection() {
+    return FutureBuilder<ApiResponse<dynamic>>(
+      future: _reviewsFuture,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState != ConnectionState.done) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (snapshot.hasError || !snapshot.hasData || !snapshot.data!.success) {
+          return const Text('评价暂不可用');
+        }
+        final data = snapshot.data!.data as Map<String, dynamic>;
+        final reviews = (data['reviews'] as List? ?? [])
+            .map((item) => Map<String, dynamic>.from(item as Map))
+            .toList();
+        final average = (data['avgRating'] as num?)?.toDouble() ?? 0;
+        final total = data['totalCount'] as int? ?? reviews.length;
+        return Card(
+          color: Colors.white,
+          child: Padding(
+            padding: const EdgeInsets.all(14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Expanded(
+                      child: Text(
+                        '钓友评价',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                    Text('★ ${average.toStringAsFixed(1)} · $total 条'),
+                    TextButton(onPressed: _addReview, child: const Text('写评价')),
+                  ],
+                ),
+                if (reviews.isEmpty)
+                  const Text('还没有评价，来分享你的作钓体验吧。')
+                else
+                  ...reviews
+                      .take(5)
+                      .map(
+                        (review) => ListTile(
+                          contentPadding: EdgeInsets.zero,
+                          dense: true,
+                          title: Text(
+                            '${review['userNickname'] ?? '钓友'} · ${review['rating']} 星',
+                          ),
+                          subtitle: Text(review['content'] as String? ?? ''),
+                        ),
+                      ),
+              ],
+            ),
           ),
         );
       },
@@ -326,7 +598,11 @@ class SpotDetailScreen extends StatelessWidget {
           const SizedBox(width: 4),
           Text(
             text,
-            style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: color),
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+              color: color,
+            ),
           ),
         ],
       ),

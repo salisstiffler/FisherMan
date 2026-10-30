@@ -1,4 +1,5 @@
 const db = require('../db');
+const { createNotification } = require('./notifications');
 
 exports.listCatches = (req, res) => {
   const { fishType, spotId, userId, limit = 50 } = req.query;
@@ -39,8 +40,11 @@ exports.listCatches = (req, res) => {
     params.push(Number(userId));
   }
 
-  query += ` ORDER BY c.created_at DESC LIMIT ?`;
-  params.push(Number(limit));
+  const offsetVal = Math.max(Number(req.query.offset) || 0, 0);
+  const limitVal = Math.min(Math.max(Number(limit) || 50, 1), 100);
+  query += ` ORDER BY c.created_at DESC LIMIT ? OFFSET ?`;
+  params.push(limitVal);
+  params.push(offsetVal);
 
   const rows = db.prepare(query).all(...params);
 
@@ -142,6 +146,7 @@ exports.getCatchDetail = (req, res) => {
         userNickname: c.user_nickname,
         userAvatar: c.user_avatar,
         content: c.content,
+        parentId: c.parent_id,
         createdAt: c.created_at,
       })),
       createdAt: r.created_at,
@@ -203,6 +208,10 @@ exports.createCatch = (req, res) => {
 exports.toggleLike = (req, res) => {
   const catchId = Number(req.params.id);
   const userId = req.user.id;
+  const catchOwner = db.prepare('SELECT user_id FROM catches WHERE id = ?').get(catchId);
+  if (!catchOwner) {
+    return res.status(404).json({ code: 404, message: '渔获记录不存在' });
+  }
 
   const existing = db.prepare(`
     SELECT id FROM likes WHERE user_id = ? AND target_type = 'catch' AND target_id = ?
@@ -220,6 +229,12 @@ exports.toggleLike = (req, res) => {
   } else {
     db.prepare(`INSERT INTO likes (user_id, target_type, target_id) VALUES (?, 'catch', ?)`).run(userId, catchId);
     db.prepare('UPDATE catches SET likes_count = likes_count + 1 WHERE id = ?').run(catchId);
+    if (catchOwner.user_id !== userId) {
+      createNotification(
+        catchOwner.user_id, 'like', userId, req.user.nickname, req.user.avatar,
+        'catch', catchId, `${req.user.nickname} 赞了你的战报`
+      );
+    }
     const updated = db.prepare('SELECT likes_count FROM catches WHERE id = ?').get(catchId);
     return res.json({
       code: 200,
@@ -231,17 +246,36 @@ exports.toggleLike = (req, res) => {
 
 exports.addComment = (req, res) => {
   const catchId = Number(req.params.id);
-  const { content } = req.body;
+  const { content, parentId } = req.body;
 
+  const catchOwner = db.prepare('SELECT user_id FROM catches WHERE id = ?').get(catchId);
+  if (!catchOwner) {
+    return res.status(404).json({ code: 404, message: '渔获记录不存在' });
+  }
   if (!content || !content.trim()) {
     return res.status(400).json({ code: 400, message: '评论内容不能为空' });
   }
+  if (parentId !== undefined && parentId !== null) {
+    const parent = db.prepare(
+      'SELECT id FROM comments WHERE id = ? AND catch_id = ?',
+    ).get(Number(parentId), catchId);
+    if (!parent) {
+      return res.status(400).json({ code: 400, message: '回复的评论不存在' });
+    }
+  }
 
   const result = db.prepare(`
-    INSERT INTO comments (catch_id, user_id, content) VALUES (?, ?, ?)
-  `).run(catchId, req.user.id, content.trim());
+    INSERT INTO comments (catch_id, user_id, content, parent_id) VALUES (?, ?, ?, ?)
+  `).run(catchId, req.user.id, content.trim(), parentId ?? null);
 
   db.prepare('UPDATE catches SET comments_count = comments_count + 1 WHERE id = ?').run(catchId);
+
+  if (catchOwner.user_id !== req.user.id) {
+    createNotification(
+      catchOwner.user_id, 'comment', req.user.id, req.user.nickname, req.user.avatar,
+      'catch', catchId, `${req.user.nickname} 评论了你的战报`
+    );
+  }
 
   res.status(201).json({
     code: 200,
@@ -251,7 +285,80 @@ exports.addComment = (req, res) => {
       content: content.trim(),
       userNickname: req.user.nickname,
       userAvatar: req.user.avatar,
+      parentId: parentId ?? null,
       createdAt: new Date().toISOString(),
     },
   });
+};
+
+exports.deleteCatch = (req, res) => {
+  const catchId = Number(req.params.id);
+  const userId = req.user.id;
+
+  const record = db.prepare('SELECT user_id FROM catches WHERE id = ?').get(catchId);
+  if (!record) {
+    return res.status(404).json({ code: 404, message: '渔获记录不存在' });
+  }
+  if (record.user_id !== userId) {
+    return res.status(403).json({ code: 403, message: '无权删除他人的渔获' });
+  }
+
+  db.prepare("DELETE FROM likes WHERE target_type = 'catch' AND target_id = ?").run(catchId);
+  db.prepare('DELETE FROM catches WHERE id = ?').run(catchId);
+  res.json({ code: 200, message: '战报已删除' });
+};
+
+exports.updateCatch = (req, res) => {
+  const catchId = Number(req.params.id);
+  const userId = req.user.id;
+  const { notes, photoUrl, fishingMethod, bait, depthM } = req.body;
+
+  const record = db.prepare('SELECT user_id FROM catches WHERE id = ?').get(catchId);
+  if (!record) {
+    return res.status(404).json({ code: 404, message: '渔获记录不存在' });
+  }
+  if (record.user_id !== userId) {
+    return res.status(403).json({ code: 403, message: '无权修改他人的渔获' });
+  }
+
+  const editableFields = [notes, photoUrl, fishingMethod, bait, depthM];
+  if (editableFields.every((value) => value === undefined)) {
+    return res.status(400).json({ code: 400, message: '请提供要更新的战报内容' });
+  }
+  const parsedDepth = depthM === undefined ? null : Number(depthM);
+  if (depthM !== undefined && (!Number.isFinite(parsedDepth) || parsedDepth < 0)) {
+    return res.status(400).json({ code: 400, message: '水深必须为非负数' });
+  }
+
+  db.prepare(`
+    UPDATE catches SET
+      notes = COALESCE(?, notes),
+      photo_url = COALESCE(?, photo_url),
+      fishing_method = COALESCE(?, fishing_method),
+      bait = COALESCE(?, bait),
+      depth_m = COALESCE(?, depth_m)
+    WHERE id = ?
+  `).run(notes, photoUrl, fishingMethod, bait, parsedDepth, catchId);
+
+  res.json({ code: 200, message: '战报更新成功' });
+};
+
+exports.deleteComment = (req, res) => {
+  const commentId = Number(req.params.commentId);
+  const userId = req.user.id;
+
+  const catchId = Number(req.params.id);
+  const comment = db.prepare('SELECT user_id, catch_id FROM comments WHERE id = ? AND catch_id = ?').get(commentId, catchId);
+  if (!comment) {
+    return res.status(404).json({ code: 404, message: '评论不存在' });
+  }
+  if (comment.user_id !== userId) {
+    return res.status(403).json({ code: 403, message: '无权删除他人评论' });
+  }
+
+  db.prepare('UPDATE comments SET parent_id = NULL WHERE parent_id = ?').run(commentId);
+  db.prepare('DELETE FROM comments WHERE id = ?').run(commentId);
+  db.prepare('UPDATE catches SET comments_count = MAX(0, comments_count - 1) WHERE id = ?').run(comment.catch_id);
+
+  res.json({ code: 200, message: '评论已删除' });
 };

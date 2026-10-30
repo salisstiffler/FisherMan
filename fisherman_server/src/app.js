@@ -10,6 +10,10 @@ const spotsCtrl = require('./controllers/spots');
 const catchesCtrl = require('./controllers/catches');
 const weatherCtrl = require('./controllers/weather');
 const statsCtrl = require('./controllers/stats');
+const followsCtrl = require('./controllers/follows');
+const notificationsCtrl = require('./controllers/notifications');
+const searchCtrl = require('./controllers/search');
+const reviewsCtrl = require('./controllers/reviews');
 
 const app = express();
 
@@ -53,12 +57,25 @@ app.post('/api/auth/register', authCtrl.register);
 app.post('/api/auth/login', authCtrl.login);
 app.get('/api/auth/me', authenticate, authCtrl.getMe);
 app.put('/api/auth/profile', authenticate, authCtrl.updateProfile);
-app.get('/api/users/:id', authCtrl.getUserProfile);
+app.get('/api/users/:id', optionalAuth, authCtrl.getUserProfile);
+app.post('/api/users/:id/follow', authenticate, followsCtrl.toggleFollow);
+app.get('/api/users/:id/followers', optionalAuth, followsCtrl.getFollowers);
+app.get('/api/users/:id/following', optionalAuth, followsCtrl.getFollowing);
+
+// Notifications
+app.get('/api/notifications', authenticate, notificationsCtrl.listNotifications);
+app.get('/api/notifications/unread-count', authenticate, notificationsCtrl.getUnreadCount);
+app.put('/api/notifications/read', authenticate, notificationsCtrl.markAllRead);
+app.get('/api/search', searchCtrl.search);
 
 // Spots routes
 app.get('/api/spots', optionalAuth, spotsCtrl.listSpots);
 app.get('/api/spots/:id', optionalAuth, spotsCtrl.getSpotDetail);
 app.post('/api/spots', authenticate, spotsCtrl.createSpot);
+app.get('/api/spots/:id/reviews', reviewsCtrl.listReviews);
+app.post('/api/spots/:id/reviews', authenticate, reviewsCtrl.addReview);
+app.put('/api/spots/:id', authenticate, spotsCtrl.updateSpot);
+app.delete('/api/spots/:id', authenticate, spotsCtrl.deleteSpot);
 app.post('/api/spots/:id/favorite', authenticate, spotsCtrl.toggleFavorite);
 app.get('/api/my/favorites', authenticate, spotsCtrl.getMyFavorites);
 
@@ -66,14 +83,18 @@ app.get('/api/my/favorites', authenticate, spotsCtrl.getMyFavorites);
 app.get('/api/catches', optionalAuth, catchesCtrl.listCatches);
 app.get('/api/catches/:id', optionalAuth, catchesCtrl.getCatchDetail);
 app.post('/api/catches', authenticate, catchesCtrl.createCatch);
+app.put('/api/catches/:id', authenticate, catchesCtrl.updateCatch);
+app.delete('/api/catches/:id', authenticate, catchesCtrl.deleteCatch);
 app.post('/api/catches/:id/like', authenticate, catchesCtrl.toggleLike);
 app.post('/api/catches/:id/comments', authenticate, catchesCtrl.addComment);
+app.delete('/api/catches/:id/comments/:commentId', authenticate, catchesCtrl.deleteComment);
 
 // Weather & Fishing Index
 app.get('/api/weather', weatherCtrl.getFishingWeather);
 
 // Platform Stats & Leaderboard
 app.get('/api/stats', statsCtrl.getOverviewStats);
+app.get('/api/stats/my', authenticate, statsCtrl.getMyStats);
 
 // Upload endpoint
 app.post('/api/upload', authenticate, upload.single('file'), (req, res) => {

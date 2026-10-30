@@ -3,12 +3,15 @@ import 'package:flutter/services.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:provider/provider.dart';
+
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_constants.dart';
 import '../../models/catch_model.dart';
 import '../../models/spot_model.dart';
 import '../../providers/catches_provider.dart';
 import '../map/spot_detail_screen.dart';
+import '../profile/user_profile_screen.dart';
+import '../search/search_screen.dart';
 import 'catch_detail_screen.dart';
 
 class FeedScreen extends StatefulWidget {
@@ -19,12 +22,33 @@ class FeedScreen extends StatefulWidget {
 }
 
 class _FeedScreenState extends State<FeedScreen> {
+  final ScrollController _scrollController = ScrollController();
+
   @override
   void initState() {
     super.initState();
+    _scrollController.addListener(_loadMoreIfNeeded);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       Provider.of<CatchesProvider>(context, listen: false).fetchCatches();
     });
+  }
+
+  @override
+  void dispose() {
+    _scrollController
+      ..removeListener(_loadMoreIfNeeded)
+      ..dispose();
+    super.dispose();
+  }
+
+  void _loadMoreIfNeeded() {
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent - 300) {
+      Provider.of<CatchesProvider>(
+        context,
+        listen: false,
+      ).fetchCatches(loadMore: true);
+    }
   }
 
   void _showSpotLocationAndNavigation(BuildContext context, CatchModel item) {
@@ -51,11 +75,18 @@ class _FeedScreenState extends State<FeedScreen> {
                 children: [
                   Row(
                     children: [
-                      const Icon(Icons.location_on, color: AppColors.primary, size: 24),
+                      const Icon(
+                        Icons.location_on,
+                        color: AppColors.primary,
+                        size: 24,
+                      ),
                       const SizedBox(width: 8),
                       Text(
                         item.spotName,
-                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 18,
+                        ),
                       ),
                     ],
                   ),
@@ -71,33 +102,49 @@ class _FeedScreenState extends State<FeedScreen> {
               Row(
                 children: [
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 2,
+                    ),
                     decoration: BoxDecoration(
                       color: AppColors.primary.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(4),
                     ),
                     child: Text(
                       item.spotWaterType,
-                      style: const TextStyle(color: AppColors.primary, fontSize: 11, fontWeight: FontWeight.bold),
+                      style: const TextStyle(
+                        color: AppColors.primary,
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
                   const SizedBox(width: 6),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 2,
+                    ),
                     decoration: BoxDecoration(
                       color: AppColors.secondary.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(4),
                     ),
                     child: Text(
                       item.spotChargeType,
-                      style: const TextStyle(color: AppColors.secondary, fontSize: 11),
+                      style: const TextStyle(
+                        color: AppColors.secondary,
+                        fontSize: 11,
+                      ),
                     ),
                   ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       item.spotAddress,
-                      style: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
+                      style: const TextStyle(
+                        color: AppColors.textSecondary,
+                        fontSize: 12,
+                      ),
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
@@ -118,7 +165,8 @@ class _FeedScreenState extends State<FeedScreen> {
                     ),
                     children: [
                       TileLayer(
-                        urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                        urlTemplate:
+                            'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
                         userAgentPackageName: 'com.fisherman.app',
                       ),
                       MarkerLayer(
@@ -131,7 +179,10 @@ class _FeedScreenState extends State<FeedScreen> {
                               decoration: BoxDecoration(
                                 color: AppColors.goldenFish,
                                 shape: BoxShape.circle,
-                                border: Border.all(color: Colors.white, width: 2.5),
+                                border: Border.all(
+                                  color: Colors.white,
+                                  width: 2.5,
+                                ),
                                 boxShadow: [
                                   BoxShadow(
                                     color: Colors.black.withValues(alpha: 0.3),
@@ -140,7 +191,11 @@ class _FeedScreenState extends State<FeedScreen> {
                                 ],
                               ),
                               child: const Center(
-                                child: Icon(Icons.phishing, color: Colors.white, size: 24),
+                                child: Icon(
+                                  Icons.phishing,
+                                  color: Colors.white,
+                                  size: 24,
+                                ),
                               ),
                             ),
                           ),
@@ -167,39 +222,69 @@ class _FeedScreenState extends State<FeedScreen> {
                       children: [
                         Row(
                           children: [
-                            const Icon(Icons.near_me, color: AppColors.secondary, size: 18),
+                            const Icon(
+                              Icons.near_me,
+                              color: AppColors.secondary,
+                              size: 18,
+                            ),
                             const SizedBox(width: 6),
                             const Text(
                               '导航坐标:',
-                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 13,
+                              ),
                             ),
                             const SizedBox(width: 6),
                             Text(
                               '${item.spotLat.toStringAsFixed(4)}, ${item.spotLng.toStringAsFixed(4)}',
-                              style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: AppColors.textSecondary,
+                              ),
                             ),
                           ],
                         ),
                         InkWell(
                           onTap: () {
-                            Clipboard.setData(ClipboardData(text: '${item.spotLat}, ${item.spotLng}'));
+                            Clipboard.setData(
+                              ClipboardData(
+                                text: '${item.spotLat}, ${item.spotLng}',
+                              ),
+                            );
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(content: Text('已复制经纬度坐标到剪贴板！')),
                             );
                           },
-                          child: const Text('复制坐标', style: TextStyle(color: AppColors.primary, fontSize: 12, fontWeight: FontWeight.bold)),
+                          child: const Text(
+                            '复制坐标',
+                            style: TextStyle(
+                              color: AppColors.primary,
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                         ),
                       ],
                     ),
                     const SizedBox(height: 6),
                     Row(
                       children: [
-                        const Icon(Icons.directions_car_outlined, size: 16, color: AppColors.textSecondary),
+                        const Icon(
+                          Icons.directions_car_outlined,
+                          size: 16,
+                          color: AppColors.textSecondary,
+                        ),
                         const SizedBox(width: 6),
                         Expanded(
                           child: Text(
                             '交通指引: 沿环湖大道驾车直达，水边提供钓友简易泊车位。',
-                            style: TextStyle(fontSize: 12, color: AppColors.textSecondary.withValues(alpha: 0.9)),
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: AppColors.textSecondary.withValues(
+                                alpha: 0.9,
+                              ),
+                            ),
                           ),
                         ),
                       ],
@@ -221,7 +306,8 @@ class _FeedScreenState extends State<FeedScreen> {
                         final spot = SpotModel(
                           id: item.spotId ?? 1,
                           name: item.spotName,
-                          description: '近期出鱼: ${item.fishType} (${item.weightKg}kg)。${item.notes}',
+                          description:
+                              '近期出鱼: ${item.fishType} (${item.weightKg}kg)。${item.notes}',
                           lat: item.spotLat,
                           lng: item.spotLng,
                           waterType: item.spotWaterType,
@@ -230,7 +316,9 @@ class _FeedScreenState extends State<FeedScreen> {
                         );
                         Navigator.push(
                           context,
-                          MaterialPageRoute(builder: (_) => SpotDetailScreen(spot: spot)),
+                          MaterialPageRoute(
+                            builder: (_) => SpotDetailScreen(spot: spot),
+                          ),
                         );
                       },
                     ),
@@ -273,9 +361,14 @@ class _FeedScreenState extends State<FeedScreen> {
           children: [
             Text('目标水域: ${item.spotAddress}'),
             const SizedBox(height: 8),
-            Text('GPS 坐标: ${item.spotLat.toStringAsFixed(4)}, ${item.spotLng.toStringAsFixed(4)}'),
+            Text(
+              'GPS 坐标: ${item.spotLat.toStringAsFixed(4)}, ${item.spotLng.toStringAsFixed(4)}',
+            ),
             const SizedBox(height: 16),
-            const Text('请选择您常用的地图导航应用：', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+            const Text(
+              '请选择您常用的地图导航应用：',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+            ),
             const SizedBox(height: 8),
             ListTile(
               dense: true,
@@ -285,7 +378,9 @@ class _FeedScreenState extends State<FeedScreen> {
               onTap: () {
                 Navigator.pop(dialogCtx);
                 ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('已唤起高德地图，正在规划前往【${item.spotName}】的出钓路线')),
+                  SnackBar(
+                    content: Text('已唤起高德地图，正在规划前往【${item.spotName}】的出钓路线'),
+                  ),
                 );
               },
             ),
@@ -297,7 +392,9 @@ class _FeedScreenState extends State<FeedScreen> {
               onTap: () {
                 Navigator.pop(dialogCtx);
                 ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('已唤起腾讯地图，正在规划前往【${item.spotName}】的出钓路线')),
+                  SnackBar(
+                    content: Text('已唤起腾讯地图，正在规划前往【${item.spotName}】的出钓路线'),
+                  ),
                 );
               },
             ),
@@ -307,9 +404,13 @@ class _FeedScreenState extends State<FeedScreen> {
               title: const Text('复制坐标并在系统地图中搜索'),
               onTap: () {
                 Navigator.pop(dialogCtx);
-                Clipboard.setData(ClipboardData(text: '${item.spotLat}, ${item.spotLng}'));
+                Clipboard.setData(
+                  ClipboardData(text: '${item.spotLat}, ${item.spotLng}'),
+                );
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('已复制精确 GPS 坐标，可直接粘贴至任意地图软件开启导航！')),
+                  const SnackBar(
+                    content: Text('已复制精确 GPS 坐标，可直接粘贴至任意地图软件开启导航！'),
+                  ),
                 );
               },
             ),
@@ -334,6 +435,14 @@ class _FeedScreenState extends State<FeedScreen> {
       appBar: AppBar(
         title: const Text('钓友动态 • 渔获战报'),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.search),
+            tooltip: '搜索',
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const SearchScreen()),
+            ),
+          ),
           IconButton(
             icon: const Icon(Icons.refresh),
             tooltip: '刷新动态',
@@ -370,16 +479,35 @@ class _FeedScreenState extends State<FeedScreen> {
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.phishing, size: 54, color: AppColors.textMuted),
+                          Icon(
+                            Icons.phishing,
+                            size: 54,
+                            color: AppColors.textMuted,
+                          ),
                           SizedBox(height: 12),
-                          Text('暂无此鱼种的动态，快去成为首发大师吧！', style: TextStyle(color: AppColors.textSecondary)),
+                          Text(
+                            '暂无此鱼种的动态，快去成为首发大师吧！',
+                            style: TextStyle(color: AppColors.textSecondary),
+                          ),
                         ],
                       ),
                     )
                   : ListView.builder(
+                      controller: _scrollController,
                       padding: const EdgeInsets.all(12),
-                      itemCount: catches.length,
+                      itemCount:
+                          catches.length +
+                          (catchesProvider.isLoadingMore ||
+                                  catchesProvider.hasMore
+                              ? 1
+                              : 0),
                       itemBuilder: (context, index) {
+                        if (index == catches.length) {
+                          return const Padding(
+                            padding: EdgeInsets.all(16),
+                            child: Center(child: CircularProgressIndicator()),
+                          );
+                        }
                         final item = catches[index];
                         return _buildCatchCard(context, item, catchesProvider);
                       },
@@ -411,7 +539,11 @@ class _FeedScreenState extends State<FeedScreen> {
     );
   }
 
-  Widget _buildCatchCard(BuildContext context, CatchModel item, CatchesProvider provider) {
+  Widget _buildCatchCard(
+    BuildContext context,
+    CatchModel item,
+    CatchesProvider provider,
+  ) {
     return Card(
       margin: const EdgeInsets.only(bottom: 16),
       clipBehavior: Clip.antiAlias,
@@ -432,26 +564,55 @@ class _FeedScreenState extends State<FeedScreen> {
               padding: const EdgeInsets.all(12.0),
               child: Row(
                 children: [
-                  CircleAvatar(
-                    radius: 20,
-                    backgroundImage: item.userAvatar.isNotEmpty ? NetworkImage(item.userAvatar) : null,
-                    backgroundColor: AppColors.primary,
-                    child: item.userAvatar.isEmpty
-                        ? const Icon(Icons.person, color: Colors.white, size: 20)
-                        : null,
+                  GestureDetector(
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => UserProfileScreen(userId: item.userId),
+                      ),
+                    ),
+                    child: CircleAvatar(
+                      radius: 20,
+                      backgroundImage: item.userAvatar.isNotEmpty
+                          ? NetworkImage(item.userAvatar)
+                          : null,
+                      backgroundColor: AppColors.primary,
+                      child: item.userAvatar.isEmpty
+                          ? const Icon(
+                              Icons.person,
+                              color: Colors.white,
+                              size: 20,
+                            )
+                          : null,
+                    ),
                   ),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          item.userNickname,
-                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                        GestureDetector(
+                          onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) =>
+                                  UserProfileScreen(userId: item.userId),
+                            ),
+                          ),
+                          child: Text(
+                            item.userNickname,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                            ),
+                          ),
                         ),
                         Text(
                           '${item.fishingMethod} • ${item.createdAt ?? '刚刚'}',
-                          style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: AppColors.textSecondary,
+                          ),
                         ),
                       ],
                     ),
@@ -462,23 +623,40 @@ class _FeedScreenState extends State<FeedScreen> {
                     borderRadius: BorderRadius.circular(12),
                     onTap: () => _showSpotLocationAndNavigation(context, item),
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 4,
+                      ),
                       decoration: BoxDecoration(
                         color: AppColors.primary.withValues(alpha: 0.08),
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: AppColors.primary.withValues(alpha: 0.2)),
+                        border: Border.all(
+                          color: AppColors.primary.withValues(alpha: 0.2),
+                        ),
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Icon(Icons.location_on, size: 14, color: AppColors.primary),
+                          const Icon(
+                            Icons.location_on,
+                            size: 14,
+                            color: AppColors.primary,
+                          ),
                           const SizedBox(width: 2),
                           Text(
                             item.spotName,
-                            style: const TextStyle(fontSize: 12, color: AppColors.primary, fontWeight: FontWeight.bold),
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: AppColors.primary,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                           const SizedBox(width: 2),
-                          const Icon(Icons.navigation, size: 11, color: AppColors.primary),
+                          const Icon(
+                            Icons.navigation,
+                            size: 11,
+                            color: AppColors.primary,
+                          ),
                         ],
                       ),
                     ),
@@ -492,23 +670,37 @@ class _FeedScreenState extends State<FeedScreen> {
               onTap: () => _showSpotLocationAndNavigation(context, item),
               child: Container(
                 width: double.infinity,
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
                 color: AppColors.lightBackground,
                 child: Row(
                   children: [
-                    const Icon(Icons.place_outlined, size: 14, color: AppColors.textSecondary),
+                    const Icon(
+                      Icons.place_outlined,
+                      size: 14,
+                      color: AppColors.textSecondary,
+                    ),
                     const SizedBox(width: 4),
                     Expanded(
                       child: Text(
                         '详细位置: ${item.spotAddress}',
-                        style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: AppColors.textSecondary,
+                        ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
                     const Text(
                       '查看地图与导航 >',
-                      style: TextStyle(fontSize: 11, color: AppColors.secondary, fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: AppColors.secondary,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ],
                 ),
@@ -526,14 +718,21 @@ class _FeedScreenState extends State<FeedScreen> {
                   errorBuilder: (_, _, _) => Container(
                     height: 200,
                     color: AppColors.primaryDark,
-                    child: const Icon(Icons.phishing, color: Colors.white, size: 48),
+                    child: const Icon(
+                      Icons.phishing,
+                      color: Colors.white,
+                      size: 48,
+                    ),
                   ),
                 ),
                 Positioned(
                   bottom: 10,
                   left: 10,
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 5,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.black.withValues(alpha: 0.75),
                       borderRadius: BorderRadius.circular(8),
@@ -542,7 +741,11 @@ class _FeedScreenState extends State<FeedScreen> {
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(Icons.emoji_events, color: AppColors.goldenFish, size: 16),
+                        const Icon(
+                          Icons.emoji_events,
+                          color: AppColors.goldenFish,
+                          size: 16,
+                        ),
                         const SizedBox(width: 4),
                         Text(
                           '${item.fishType}  ${item.weightKg} kg',
@@ -567,7 +770,11 @@ class _FeedScreenState extends State<FeedScreen> {
                   item.notes,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontSize: 13, height: 1.4, color: AppColors.textPrimary),
+                  style: const TextStyle(
+                    fontSize: 13,
+                    height: 1.4,
+                    color: AppColors.textPrimary,
+                  ),
                 ),
               ),
 
@@ -580,21 +787,32 @@ class _FeedScreenState extends State<FeedScreen> {
                     borderRadius: BorderRadius.circular(8),
                     onTap: () => provider.toggleLike(item.id),
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
                       child: Row(
                         children: [
                           Icon(
-                            item.isLiked ? Icons.favorite : Icons.favorite_border,
+                            item.isLiked
+                                ? Icons.favorite
+                                : Icons.favorite_border,
                             size: 18,
-                            color: item.isLiked ? AppColors.danger : AppColors.textSecondary,
+                            color: item.isLiked
+                                ? AppColors.danger
+                                : AppColors.textSecondary,
                           ),
                           const SizedBox(width: 4),
                           Text(
                             '${item.likesCount}',
                             style: TextStyle(
                               fontSize: 12,
-                              color: item.isLiked ? AppColors.danger : AppColors.textSecondary,
-                              fontWeight: item.isLiked ? FontWeight.bold : FontWeight.normal,
+                              color: item.isLiked
+                                  ? AppColors.danger
+                                  : AppColors.textSecondary,
+                              fontWeight: item.isLiked
+                                  ? FontWeight.bold
+                                  : FontWeight.normal,
                             ),
                           ),
                         ],
@@ -604,11 +822,18 @@ class _FeedScreenState extends State<FeedScreen> {
                   const SizedBox(width: 16),
                   Row(
                     children: [
-                      const Icon(Icons.chat_bubble_outline, size: 16, color: AppColors.textSecondary),
+                      const Icon(
+                        Icons.chat_bubble_outline,
+                        size: 16,
+                        color: AppColors.textSecondary,
+                      ),
                       const SizedBox(width: 4),
                       Text(
                         '${item.commentsCount}',
-                        style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: AppColors.textSecondary,
+                        ),
                       ),
                     ],
                   ),
@@ -617,11 +842,19 @@ class _FeedScreenState extends State<FeedScreen> {
                     onTap: () => _showSpotLocationAndNavigation(context, item),
                     child: const Row(
                       children: [
-                        Icon(Icons.directions, size: 14, color: AppColors.primary),
+                        Icon(
+                          Icons.directions,
+                          size: 14,
+                          color: AppColors.primary,
+                        ),
                         SizedBox(width: 2),
                         Text(
                           '导航',
-                          style: TextStyle(fontSize: 12, color: AppColors.primary, fontWeight: FontWeight.bold),
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: AppColors.primary,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ],
                     ),
@@ -629,7 +862,11 @@ class _FeedScreenState extends State<FeedScreen> {
                   const SizedBox(width: 12),
                   const Text(
                     '查看战报 >',
-                    style: TextStyle(fontSize: 12, color: AppColors.primary, fontWeight: FontWeight.bold),
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: AppColors.primary,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ],
               ),

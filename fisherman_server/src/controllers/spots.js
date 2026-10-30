@@ -13,7 +13,7 @@ function calculateDistance(lat1, lon1, lat2, lon2) {
 }
 
 exports.listSpots = (req, res) => {
-  const { keyword, water_type, charge_type, lat, lng } = req.query;
+  const { keyword, water_type, charge_type, creatorId, lat, lng } = req.query;
   const currentUserId = req.user?.id || 0;
 
   let query = `
@@ -43,6 +43,11 @@ exports.listSpots = (req, res) => {
   if (charge_type && charge_type !== '全部') {
     query += ` AND s.charge_type = ?`;
     params.push(charge_type);
+  }
+
+  if (creatorId) {
+    query += ` AND s.creator_id = ?`;
+    params.push(Number(creatorId));
   }
 
   query += ` ORDER BY s.id DESC`;
@@ -84,6 +89,7 @@ exports.listSpots = (req, res) => {
       imageUrl: row.image_url,
       likesCount: row.likes_count,
       catchCount: row.catch_count,
+      avgRating: row.avg_rating || 0,
       isFavorited: Boolean(row.is_favorited),
       distanceKm,
       createdAt: row.created_at,
@@ -159,6 +165,7 @@ exports.getSpotDetail = (req, res) => {
       imageUrl: row.image_url,
       likesCount: row.likes_count,
       catchCount: row.catch_count,
+      avgRating: row.avg_rating || 0,
       isFavorited: Boolean(row.is_favorited),
       recentCatches: recentCatches.map(c => ({
         id: c.id,
@@ -275,4 +282,59 @@ exports.getMyFavorites = (req, res) => {
   });
 
   res.json({ code: 200, data: result });
+};
+
+exports.deleteSpot = (req, res) => {
+  const spotId = Number(req.params.id);
+  const userId = req.user.id;
+
+  const spot = db.prepare('SELECT creator_id FROM spots WHERE id = ?').get(spotId);
+  if (!spot) {
+    return res.status(404).json({ code: 404, message: '钓点不存在' });
+  }
+  if (spot.creator_id !== userId) {
+    return res.status(403).json({ code: 403, message: '无权删除他人创建的钓点' });
+  }
+
+  db.prepare('DELETE FROM favorites WHERE spot_id = ?').run(spotId);
+  db.prepare('DELETE FROM spots WHERE id = ?').run(spotId);
+  res.json({ code: 200, message: '钓点已删除' });
+};
+
+exports.updateSpot = (req, res) => {
+  const spotId = Number(req.params.id);
+  const userId = req.user.id;
+  const { name, description, waterType, chargeType, feeDesc, depthMeters, rules, imageUrl } = req.body;
+
+  const spot = db.prepare('SELECT creator_id FROM spots WHERE id = ?').get(spotId);
+  if (!spot) {
+    return res.status(404).json({ code: 404, message: '钓点不存在' });
+  }
+  if (spot.creator_id !== userId) {
+    return res.status(403).json({ code: 403, message: '无权修改他人创建的钓点' });
+  }
+
+  const fields = [name, description, waterType, chargeType, feeDesc, depthMeters, rules, imageUrl];
+  if (fields.every((value) => value === undefined)) {
+    return res.status(400).json({ code: 400, message: '请提供要更新的钓点内容' });
+  }
+  const parsedDepth = depthMeters === undefined ? null : Number(depthMeters);
+  if (depthMeters !== undefined && (!Number.isFinite(parsedDepth) || parsedDepth < 0)) {
+    return res.status(400).json({ code: 400, message: '水深必须为非负数' });
+  }
+
+  db.prepare(`
+    UPDATE spots SET
+      name = COALESCE(?, name),
+      description = COALESCE(?, description),
+      water_type = COALESCE(?, water_type),
+      charge_type = COALESCE(?, charge_type),
+      fee_desc = COALESCE(?, fee_desc),
+      depth_meters = COALESCE(?, depth_meters),
+      rules = COALESCE(?, rules),
+      image_url = COALESCE(?, image_url)
+    WHERE id = ?
+  `).run(name, description, waterType, chargeType, feeDesc, parsedDepth, rules, imageUrl, spotId);
+
+  res.json({ code: 200, message: '钓点信息更新成功' });
 };

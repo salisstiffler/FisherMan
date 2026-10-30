@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+
 import '../core/network/api_client.dart';
 import '../core/network/api_endpoints.dart';
 import '../models/catch_model.dart';
@@ -7,12 +8,20 @@ class CatchesProvider extends ChangeNotifier {
   final ApiClient _api = ApiClient();
 
   List<CatchModel> _catches = [];
+  List<CatchModel> _myCatches = [];
   bool _isLoading = false;
+  bool _isLoadingMore = false;
+  bool _hasMore = true;
+  int _nextOffset = 0;
+  static const int _pageSize = 20;
   String? _errorMessage;
   String _selectedFishFilter = '全部';
 
   List<CatchModel> get catches => _catches;
+  List<CatchModel> get myCatches => _myCatches;
   bool get isLoading => _isLoading;
+  bool get isLoadingMore => _isLoadingMore;
+  bool get hasMore => _hasMore;
   String? get errorMessage => _errorMessage;
   String get selectedFishFilter => _selectedFishFilter;
 
@@ -27,8 +36,15 @@ class CatchesProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> fetchCatches() async {
-    _isLoading = true;
+  Future<void> fetchCatches({bool loadMore = false}) async {
+    if (_isLoading || _isLoadingMore || (loadMore && !_hasMore)) return;
+    if (loadMore) {
+      _isLoadingMore = true;
+    } else {
+      _isLoading = true;
+      _hasMore = true;
+      _nextOffset = 0;
+    }
     _errorMessage = null;
     notifyListeners();
 
@@ -37,24 +53,70 @@ class CatchesProvider extends ChangeNotifier {
       if (_selectedFishFilter != '全部') {
         queryParams['fishType'] = _selectedFishFilter;
       }
+      queryParams['limit'] = _pageSize;
+      queryParams['offset'] = loadMore ? _nextOffset : 0;
 
-      final res = await _api.get(ApiEndpoints.catches, queryParams: queryParams);
+      final res = await _api.get(
+        ApiEndpoints.catches,
+        queryParams: queryParams,
+      );
 
       if (res.success && res.data is List) {
-        _catches = (res.data as List).map((json) => CatchModel.fromJson(json)).toList();
-      } else {
+        final page = (res.data as List)
+            .map((json) => CatchModel.fromJson(json))
+            .toList();
+        if (loadMore) {
+          _catches.addAll(page);
+        } else {
+          _catches = page;
+        }
+        _nextOffset += page.length;
+        _hasMore = page.length == _pageSize;
+      } else if (!loadMore) {
         // Fallback filter locally
         _catches = _getFallbackCatches().where((c) {
           if (_selectedFishFilter == '全部') return true;
           return c.fishType.contains(_selectedFishFilter);
         }).toList();
+        _hasMore = false;
+      } else {
+        _errorMessage = res.message;
+        _hasMore = false;
       }
     } catch (e) {
       _errorMessage = e.toString();
     } finally {
       _isLoading = false;
+      _isLoadingMore = false;
       notifyListeners();
     }
+  }
+
+  Future<void> fetchCatchDetail(int catchId) async {
+    final response = await _api.get(ApiEndpoints.catchDetail(catchId));
+    if (!response.success || response.data is! Map) return;
+    final item = CatchModel.fromJson(
+      Map<String, dynamic>.from(response.data as Map),
+    );
+    final index = _catches.indexWhere((catchItem) => catchItem.id == catchId);
+    if (index == -1) {
+      _catches.insert(0, item);
+    } else {
+      _catches[index] = item;
+    }
+    notifyListeners();
+  }
+
+  Future<void> fetchMyCatches(int userId) async {
+    final response = await _api.get(
+      ApiEndpoints.catches,
+      queryParams: {'userId': userId, 'limit': 100},
+    );
+    if (!response.success || response.data is! List) return;
+    _myCatches = (response.data as List)
+        .map((item) => CatchModel.fromJson(item))
+        .toList();
+    notifyListeners();
   }
 
   Future<bool> publishCatch({
@@ -122,7 +184,9 @@ class CatchesProvider extends ChangeNotifier {
         fishingMethod: fishingMethod,
         depthM: depthM,
         bait: bait,
-        photoUrl: photoUrl ?? 'https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=600',
+        photoUrl:
+            photoUrl ??
+            'https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=600',
         notes: notes,
         createdAt: '刚刚',
       );
@@ -144,7 +208,9 @@ class CatchesProvider extends ChangeNotifier {
       final newLiked = !current.isLiked;
       _catches[index] = current.copyWith(
         isLiked: newLiked,
-        likesCount: newLiked ? current.likesCount + 1 : (current.likesCount > 0 ? current.likesCount - 1 : 0),
+        likesCount: newLiked
+            ? current.likesCount + 1
+            : (current.likesCount > 0 ? current.likesCount - 1 : 0),
       );
       notifyListeners();
     }
@@ -154,36 +220,51 @@ class CatchesProvider extends ChangeNotifier {
     } catch (_) {}
   }
 
-  Future<bool> addComment(int catchId, String content) async {
+  Future<bool> addComment(int catchId, String content, {int? parentId}) async {
     try {
-      final res = await _api.post(
-        ApiEndpoints.addComment(catchId),
-        body: {'content': content},
-      );
-
-      final index = _catches.indexWhere((c) => c.id == catchId);
-      if (index != -1) {
-        final current = _catches[index];
-        final newComment = CatchComment(
-          id: DateTime.now().millisecondsSinceEpoch,
-          userId: 1,
-          userNickname: '我',
-          userAvatar: '',
-          content: content,
-          createdAt: '刚刚',
-        );
-        final updatedComments = List<CatchComment>.from(current.comments)..add(newComment);
-        _catches[index] = current.copyWith(
-          commentsCount: current.commentsCount + 1,
-          comments: updatedComments,
-        );
-        notifyListeners();
-      }
-
-      return res.success;
+      final body = <String, dynamic>{'content': content};
+      if (parentId != null) body['parentId'] = parentId;
+      final res = await _api.post(ApiEndpoints.addComment(catchId), body: body);
+      if (!res.success) return false;
+      await fetchCatchDetail(catchId);
+      return true;
     } catch (e) {
       return false;
     }
+  }
+
+  Future<bool> updateCatch(int catchId, {required String notes}) async {
+    final res = await _api.put(
+      ApiEndpoints.updateCatch(catchId),
+      body: {'notes': notes},
+    );
+    if (!res.success) return false;
+    for (final catches in [_catches, _myCatches]) {
+      final index = catches.indexWhere((item) => item.id == catchId);
+      if (index != -1) {
+        catches[index] = catches[index].copyWith(notes: notes);
+      }
+    }
+    notifyListeners();
+    return true;
+  }
+
+  Future<bool> deleteCatch(int catchId) async {
+    final res = await _api.delete(ApiEndpoints.deleteCatch(catchId));
+    if (!res.success) return false;
+    _catches.removeWhere((item) => item.id == catchId);
+    _myCatches.removeWhere((item) => item.id == catchId);
+    notifyListeners();
+    return true;
+  }
+
+  Future<bool> deleteComment(int catchId, int commentId) async {
+    final response = await _api.delete(
+      ApiEndpoints.deleteComment(catchId, commentId),
+    );
+    if (!response.success) return false;
+    await fetchCatchDetail(catchId);
+    return true;
   }
 
   List<CatchModel> _getFallbackCatches() {
@@ -207,7 +288,8 @@ class CatchesProvider extends ChangeNotifier {
         fishingMethod: '路亚',
         depthM: 4.5,
         bait: '14g 沉水米诺 (银背雷射)',
-        photoUrl: 'https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=600',
+        photoUrl:
+            'https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=600',
         notes: '清晨5点40分第一竿！在铧尖外侧水流交汇处一口爆截，线杯出线如同尖叫！溜了足足八分钟才入抄网，太爽了！',
         likesCount: 89,
         commentsCount: 3,
@@ -235,7 +317,8 @@ class CatchesProvider extends ChangeNotifier {
         id: 2,
         userId: 1,
         userNickname: '空军总司令',
-        userAvatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150',
+        userAvatar:
+            'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150',
         userFishingYears: 15,
         spotId: 3,
         spotName: '湘湖三期野钓长廊',
