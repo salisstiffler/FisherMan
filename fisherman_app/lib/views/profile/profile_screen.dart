@@ -11,10 +11,10 @@ import '../../providers/catches_provider.dart';
 import '../../providers/spots_provider.dart';
 import '../feed/catch_detail_screen.dart';
 import '../map/spot_detail_screen.dart';
+import '../settings/settings_screen.dart';
 import 'follow_list_screen.dart';
 import 'edit_profile_screen.dart';
 import 'my_stats_chart.dart';
-import '../settings/settings_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -112,46 +112,83 @@ class _ProfileScreenState extends State<ProfileScreen>
 
   void _showServerSettings(BuildContext context) {
     final controller = TextEditingController(text: ApiClient().baseUrl);
-    showDialog(
+    showDialog<void>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('服务器网络设置'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              '配置后端 API 服务地址（支持本地或云端 IP）：',
-              style: TextStyle(fontSize: 13),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: controller,
-              decoration: const InputDecoration(
-                hintText: 'http://10.0.2.2:8080 或 http://localhost:8080',
-                labelText: 'API Base URL',
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('应用与网络设置'),
+        content: SizedBox(
+          width: 520,
+          height: MediaQuery.sizeOf(dialogContext).height * 0.62,
+          child: ListView(
+            padding: EdgeInsets.zero,
+            children: [
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.dns_outlined,
+                            color: Theme.of(context).colorScheme.primary,
+                          ),
+                          const SizedBox(width: 10),
+                          Text(
+                            '服务器网络',
+                            style: Theme.of(context).textTheme.titleMedium
+                                ?.copyWith(fontWeight: FontWeight.bold),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      const Text(
+                        '配置后端 API 服务地址（支持本地或云端 IP）：',
+                        style: TextStyle(fontSize: 13),
+                      ),
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: controller,
+                        keyboardType: TextInputType.url,
+                        decoration: const InputDecoration(
+                          hintText:
+                              'http://10.0.2.2:8080 或 http://localhost:8080',
+                          labelText: 'API Base URL',
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
-            ),
-          ],
+              const SettingsContent(),
+            ],
+          ),
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(ctx),
+            onPressed: () => Navigator.pop(dialogContext),
             child: const Text('取消'),
           ),
-          ElevatedButton(
+          FilledButton(
             onPressed: () {
-              ApiClient().setBaseUrl(controller.text.trim());
-              Navigator.pop(ctx);
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('已更新服务器地址为: ${controller.text.trim()}')),
-              );
+              final baseUrl = controller.text.trim();
+              if (baseUrl.isEmpty ||
+                  Uri.tryParse(baseUrl)?.hasAuthority != true) {
+                ScaffoldMessenger.of(context)
+                    .showSnackBar(const SnackBar(content: Text('请输入有效的服务器地址')));
+                return;
+              }
+              ApiClient().setBaseUrl(baseUrl);
+              Navigator.pop(dialogContext);
+              ScaffoldMessenger.of(context)
+                  .showSnackBar(SnackBar(content: Text('已更新服务器地址为: $baseUrl')));
             },
-            child: const Text('保存'),
+            child: const Text('保存服务器地址'),
           ),
         ],
       ),
-    );
+    ).whenComplete(controller.dispose);
   }
 
   Future<void> _manageCatch(CatchModel item) async {
@@ -360,7 +397,7 @@ class _ProfileScreenState extends State<ProfileScreen>
         actions: [
           IconButton(
             icon: const Icon(Icons.settings_outlined),
-            tooltip: '服务器配置',
+            tooltip: '应用与服务器设置',
             onPressed: () => _showServerSettings(context),
           ),
           IconButton(
@@ -647,22 +684,6 @@ class _ProfileScreenState extends State<ProfileScreen>
                       ),
                       const SizedBox(height: 12),
                     ],
-
-                    Card(
-                      child: ExpansionTile(
-                        leading: Icon(
-                          Icons.settings_outlined,
-                          color: context.fishermanColors.primary,
-                        ),
-                        title: const Text(
-                          '应用设置',
-                          style: TextStyle(fontWeight: FontWeight.w600),
-                        ),
-                        subtitle: const Text('主题、颜色与客户端下载'),
-                        children: const [SettingsContent()],
-                      ),
-                    ),
-                    const SizedBox(height: 12),
 
                     // Tab bar for Catches vs Favorites
                     Container(
