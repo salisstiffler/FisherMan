@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../../core/constants/app_colors.dart';
 import '../../core/network/api_client.dart';
 import '../../core/network/api_endpoints.dart';
 import '../../models/catch_model.dart';
@@ -27,7 +26,8 @@ class _UserProfileScreenState extends State<UserProfileScreen>
   List<CatchModel> _catches = [];
   List<SpotModel> _spots = [];
   bool _isLoading = true;
-  bool _isFollowing = false; // State for follow status
+  bool _isFollowing = false;
+  bool _isUpdatingFollow = false;
   String? _error;
 
   @override
@@ -48,284 +48,84 @@ class _UserProfileScreenState extends State<UserProfileScreen>
       _isLoading = true;
       _error = null;
     });
-
     try {
-      // 1. Load basic profile and social stats
-      final userResponse = await _api.get(ApiEndpoints.userProfile(widget.userId));
-      if (!userResponse.success || userResponse.data is! Map) {
+      final responses = await Future.wait([
+        _api.get(ApiEndpoints.userProfile(widget.userId)),
+        _api.get(ApiEndpoints.catches, queryParams: {'userId': widget.userId}),
+        _api.get(ApiEndpoints.spots, queryParams: {'creatorId': widget.userId}),
+      ]);
+      if (!mounted) return;
+      final profileResponse = responses[0];
+      if (!profileResponse.success || profileResponse.data is! Map) {
         setState(() {
-          _error = userResponse.message;
+          _error = profileResponse.message;
           _isLoading = false;
         });
         return;
       }
-      final user = UserModel.fromJson(
-        Map<String, dynamic>.from(userResponse.data as Map),
-      );
-      
-      // 2. Fetch other content in parallel
-      final responses = await Future.wait([
-        _api.get(ApiEndpoints.catches, queryParams: {'userId': widget.userId}),
-        _api.get(ApiEndpoints.spots, queryParams: {'creatorId': widget.userId}),
-      ]);
 
-      if (!mounted) return;
-      
-      // 3. Update state with fetched data
+      final user = UserModel.fromJson(
+        Map<String, dynamic>.from(profileResponse.data as Map),
+      );
       setState(() {
         _user = user;
         _isFollowing = user.isFollowing;
-        _catches = responses[0].success && responses[0].data is List
-            ? (responses[0].data as List)
-                  .map(
-                    (item) => CatchModel.fromJson(
-                      Map<String, dynamic>.from(item as Map),
-                    ),
-                  )
-                  .toList()
-            : [];
-        _spots = responses[1].success && responses[1].data is List
-            ? (responses[1].data as List)
-                  .map(
-                    (item) => SpotModel.fromJson(
-                      Map<String, dynamic>.from(item as Map),
-                    ),
-                  )
-                  .toList()
-            : [];
+        _catches = _parseList(responses[1], CatchModel.fromJson);
+        _spots = _parseList(responses[2], SpotModel.fromJson);
         _isLoading = false;
       });
-    } catch (e) {
-      setState(() {
-        _error = '加载失败: ${e.toString()}';
-        _isLoading = false;
-      });
-    }
-  }
-    setState(() {
-      _isLoading = true;
-      _error = null;
-    });
-
-    try {
-      // 1. Load basic profile and social stats
-      final userResponse = await _api.get(ApiEndpoints.userProfile(widget.userId));
-      if (!userResponse.success || userResponse.data is! Map) {
-        setState(() {
-          _error = userResponse.message;
-          _isLoading = false;
-        });
-        return;
-      }
-      final user = UserModel.fromJson(
-        Map<String, dynamic>.from(userResponse.data as Map),
-      );
-      
-      // 2. Fetch other content in parallel
-      final responses = await Future.wait([
-        _api.get(ApiEndpoints.catches, queryParams: {'userId': widget.userId}),
-        _api.get(ApiEndpoints.spots, queryParams: {'creatorId': widget.userId}),
-      ]);
-
+    } catch (error) {
       if (!mounted) return;
-      
-      // 3. Update state with fetched data
       setState(() {
-        _user = user;
-        _isFollowing = user.isFollowing;
-        _catches = responses[0].success && responses[0].data is List
-            ? (responses[0].data as List)
-                  .map(
-                    (item) => CatchModel.fromJson(
-                      Map<String, dynamic>.from(item as Map),
-                    ),
-                  )
-                  .toList()
-            : [];
-        _spots = responses[1].success && responses[1].data is List
-            ? (responses[1].data as List)
-                  .map(
-                    (item) => SpotModel.fromJson(
-                      Map<String, dynamic>.from(item as Map),
-                    ),
-                  )
-                  .toList()
-            : [];
-        _isLoading = false;
-      });
-    } catch (e) {
-      setState(() {
-        _error = '加载失败: ${e.toString()}';
+        _error = '加载失败: $error';
         _isLoading = false;
       });
     }
   }
-    setState(() {
-      _isLoading = true;
-      _error = null;
-    });
 
-    final responses = await Future.wait([
-      _api.get(ApiEndpoints.userProfile(widget.userId)),
-      _api.get(ApiEndpoints.catches, queryParams: {'userId': widget.userId}),
-      _api.get(ApiEndpoints.spots, queryParams: {'creatorId': widget.userId}),
-    ]);
-
-    if (!mounted) return;
-    if (!responses[0].success || responses[0].data is! Map) {
-      setState(() {
-        _error = responses[0].message;
-        _isLoading = false;
-      });
-      return;
-    }
-
-    final user = UserModel.fromJson(
-      Map<String, dynamic>.from(responses[0].data as Map),
-    );
-    setState(() {
-      _user = user;
-      _isFollowing = user.isFollowing;
-      _catches = responses[1].success && responses[1].data is List
-          ? (responses[1].data as List)
-                .map(
-                  (item) => CatchModel.fromJson(
-                    Map<String, dynamic>.from(item as Map),
-                  ),
-                )
-                .toList()
-          : [];
-      _spots = responses[2].success && responses[2].data is List
-          ? (responses[2].data as List)
-                .map(
-                  (item) => SpotModel.fromJson(
-                    Map<String, dynamic>.from(item as Map),
-                  ),
-                )
-                .toList()
-          : [];
-      _isLoading = false;
-    });
-  }
-
-  void _showBadgeDialog(BuildContext context, UserBadge badge) {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Row(
-          children: [
-            Text(badge.icon, style: const TextStyle(fontSize: 28)),
-            const SizedBox(width: 10),
-            Text(badge.name, style: const TextStyle(fontWeight: FontWeight.bold)),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(badge.desc.isNotEmpty ? badge.desc : '钓界专属荣耀成就！', style: const TextStyle(fontSize: 14)),
-            const SizedBox(height: 12),
-            if (badge.target > 0) ...[
-              Text('达成进度: ${badge.current} / ${badge.target}', style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
-              const SizedBox(height: 6),
-              LinearProgressIndicator(
-                value: (badge.current / badge.target).clamp(0.0, 1.0),
-                backgroundColor: AppColors.lightBorder,
-                valueColor: const AlwaysStoppedAnimation<Color>(AppColors.primary),
-              ),
-            ],
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('了解'),
-          ),
-        ],
-      ),
-    );
+  List<T> _parseList<T>(
+    ApiResponse<dynamic> response,
+    T Function(Map<String, dynamic>) parse,
+  ) {
+    if (!response.success || response.data is! List) return [];
+    return (response.data as List)
+        .whereType<Map>()
+        .map((item) => parse(Map<String, dynamic>.from(item)))
+        .toList();
   }
 
   Future<void> _toggleFollow() async {
-    // If the user is the profile owner, prevent action
-    if (widget.userId == _user!.id) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('无法关注自己')));
-      return;
-    }
-    
-    // Use the dedicated API endpoint for follow/unfollow
-    final response = await _api.post(ApiEndpoints.toggleFollow(widget.userId));
-    
-    if (!mounted) return;
-    
-    if (!response.success || response.data is! Map) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(response.message ?? '操作失败')));
-      return;
-    }
-    
-    final isFollowing = response.data['isFollowing'] == true;
-    
-    // Update local state and stats based on the outcome
-    setState(() {
-      _isFollowing = isFollowing;
-      final oldStats = _user!.stats;
-      
-      // Calculate delta for stats update
-      int newFollowersCount = oldStats.followersCount + (isFollowing ? 1 : -1);
-      int newFollowingCount = oldStats.followingCount + (isFollowing ? 1 : -1);
-
-      _user = UserModel(
-        id: _user!.id,
-        username: _user!.username,
-        nickname: _user!.nickname,
-        avatar: _user!.avatar,
-        bio: _user!.bio,
-        fishingYears: _user!.fishingYears,
-        targetFish: _user!.targetFish,
-        isFollowing: isFollowing,
-        stats: UserStats(
-          spotsCreated: oldStats.spotsCreated,
-          catchesCount: oldStats.catchesCount,
-          totalWeightKg: oldStats.totalWeightKg,
-          maxWeightKg: oldStats.maxWeightKg,
-          favoritesCount: oldStats.favoritesCount,
-          followersCount: newFollowersCount.clamp(0, 9999),
-          followingCount: newFollowingCount.clamp(0, 9999),
-          badges: oldStats.badges,
-        ),
-      );
-    });
-  }
-    final response = await _api.post(ApiEndpoints.toggleFollow(widget.userId));
+    final user = _user;
+    if (user == null || _isUpdatingFollow) return;
+    setState(() => _isUpdatingFollow = true);
+    final response = await _api.post(ApiEndpoints.toggleFollow(user.id));
     if (!mounted) return;
     if (!response.success || response.data is! Map) {
+      setState(() => _isUpdatingFollow = false);
       ScaffoldMessenger.of(context)
           .showSnackBar(SnackBar(content: Text(response.message)));
       return;
     }
-    final isFollowing = response.data['isFollowing'] == true;
+
+    final following = response.data['isFollowing'] == true;
+    final stats = user.stats;
     setState(() {
-      _isFollowing = isFollowing;
-      final oldStats = _user!.stats;
-      _user = UserModel(
-        id: _user!.id,
-        username: _user!.username,
-        nickname: _user!.nickname,
-        avatar: _user!.avatar,
-        bio: _user!.bio,
-        fishingYears: _user!.fishingYears,
-        targetFish: _user!.targetFish,
-        isFollowing: isFollowing,
+      _isFollowing = following;
+      _isUpdatingFollow = false;
+      _user = user.copyWith(
+        isFollowing: following,
         stats: UserStats(
-          spotsCreated: oldStats.spotsCreated,
-          catchesCount: oldStats.catchesCount,
-          totalWeightKg: oldStats.totalWeightKg,
-          maxWeightKg: oldStats.maxWeightKg,
-          favoritesCount: oldStats.favoritesCount,
-          followersCount: oldStats.followersCount + (isFollowing ? 1 : -1),
-          followingCount: oldStats.followingCount,
-          badges: oldStats.badges,
+          spotsCreated: stats.spotsCreated,
+          catchesCount: stats.catchesCount,
+          totalWeightKg: stats.totalWeightKg,
+          maxWeightKg: stats.maxWeightKg,
+          favoritesCount: stats.favoritesCount,
+          followersCount: (stats.followersCount + (following ? 1 : -1)).clamp(
+            0,
+            999999,
+          ),
+          followingCount: stats.followingCount,
+          badges: stats.badges,
         ),
       );
     });
@@ -341,11 +141,42 @@ class _UserProfileScreenState extends State<UserProfileScreen>
     );
   }
 
+  void _showBadge(UserBadge badge) {
+    showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('${badge.icon} ${badge.name}'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(badge.desc.isEmpty ? '钓界专属荣耀成就。' : badge.desc),
+            if (badge.target > 0) ...[
+              const SizedBox(height: 12),
+              Text(
+                '${badge.unlocked ? '已解锁' : '未解锁'} · 进度 ${badge.current.toStringAsFixed(0)} / ${badge.target.toStringAsFixed(0)}',
+              ),
+              const SizedBox(height: 6),
+              LinearProgressIndicator(
+                value: (badge.current / badge.target).clamp(0.0, 1.0),
+              ),
+            ],
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('知道了'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final user = _user;
     return Scaffold(
-      backgroundColor: AppColors.lightBackground,
       appBar: AppBar(title: Text(user?.nickname ?? '钓友主页')),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
@@ -363,14 +194,12 @@ class _UserProfileScreenState extends State<UserProfileScreen>
               children: [
                 _buildProfileHeader(user!),
                 Material(
-                  color: Colors.white,
+                  color: Theme.of(context).colorScheme.surface,
                   child: TabBar(
                     controller: _tabController,
-                    labelColor: AppColors.primary,
-                    unselectedLabelColor: AppColors.textSecondary,
                     tabs: [
                       Tab(text: '战报 (${_catches.length})'),
-                      Tab(text: '创建的钓点 (${_spots.length})'),
+                      Tab(text: '创建钓点 (${_spots.length})'),
                     ],
                   ),
                 ),
@@ -389,50 +218,42 @@ class _UserProfileScreenState extends State<UserProfileScreen>
     final stats = user.stats;
     return Container(
       width: double.infinity,
-      color: Colors.white,
       padding: const EdgeInsets.all(20),
+      color: Theme.of(context).colorScheme.surface,
       child: Column(
         children: [
           CircleAvatar(
             radius: 42,
-            backgroundColor: AppColors.primaryLight,
-            backgroundImage: user.avatar.isNotEmpty
-                ? NetworkImage(user.avatar)
-                : null,
+            backgroundImage: user.avatar.isEmpty
+                ? null
+                : NetworkImage(user.avatar),
             child: user.avatar.isEmpty
-                ? const Icon(Icons.person, color: Colors.white, size: 40)
+                ? const Icon(Icons.person, size: 40)
                 : null,
           ),
           const SizedBox(height: 10),
-          Text(
-            user.nickname,
-            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-          ),
+          Text(user.nickname, style: Theme.of(context).textTheme.titleLarge),
           const SizedBox(height: 4),
           Text('${user.fishingYears}年钓龄 · 主攻${user.targetFish}'),
-          const SizedBox(height: 6),
-          Text(user.bio, textAlign: TextAlign.center),
-          const SizedBox(height: 12),
+          if (user.bio.isNotEmpty) ...[
+            const SizedBox(height: 6),
+            Text(user.bio, textAlign: TextAlign.center),
+          ],
+          const SizedBox(height: 14),
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              _countButton(
-                '关注',
-                stats.followingCount,
-                () => _openFollowList(false),
-              ),
+              _countButton('关注', stats.followingCount, () {
+                _openFollowList(false);
+              }),
               const SizedBox(width: 28),
-              _countButton(
-                '粉丝',
-                stats.followersCount,
-                () => _openFollowList(true),
-              ),
+              _countButton('粉丝', stats.followersCount, () {
+                _openFollowList(true);
+              }),
               const SizedBox(width: 28),
-              _countButton(
-                '战报',
-                stats.catchesCount,
-                () => _tabController.animateTo(0),
-              ),
+              _countButton('战报', stats.catchesCount, () {
+                _tabController.animateTo(0);
+              }),
             ],
           ),
           if (stats.badges.isNotEmpty) ...[
@@ -441,22 +262,34 @@ class _UserProfileScreenState extends State<UserProfileScreen>
               spacing: 8,
               children: stats.badges
                   .map(
-                    (badge) => InkWell(onTap: () => _showBadgeDialog(context, badge), borderRadius: BorderRadius.circular(16), child: Chip(avatar: Text(badge.icon), label: Text(badge.name), visualDensity: VisualDensity.compact)),
+                    (badge) => ActionChip(
+                      avatar: Opacity(
+                        opacity: badge.unlocked ? 1 : 0.45,
+                        child: Text(badge.icon),
+                      ),
+                      label: Text(badge.name),
+                      onPressed: () => _showBadge(badge),
+                    ),
                   )
                   .toList(),
             ),
           ],
           const SizedBox(height: 12),
-          if (user.id != 0)
-            OutlinedButton.icon(
-              onPressed: _toggleFollow,
-              icon: Icon(
-                _isFollowing
-                    ? Icons.person_remove_outlined
-                    : Icons.person_add_alt,
-              ),
-              label: Text(_isFollowing ? '取消关注' : '关注'),
-            ),
+          OutlinedButton.icon(
+            onPressed: _isUpdatingFollow ? null : _toggleFollow,
+            icon: _isUpdatingFollow
+                ? const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : Icon(
+                    _isFollowing
+                        ? Icons.person_remove_outlined
+                        : Icons.person_add_alt,
+                  ),
+            label: Text(_isFollowing ? '取消关注' : '关注'),
+          ),
         ],
       ),
     );
@@ -467,17 +300,8 @@ class _UserProfileScreenState extends State<UserProfileScreen>
       onTap: onTap,
       child: Column(
         children: [
-          Text(
-            '$count',
-            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-          ),
-          Text(
-            label,
-            style: const TextStyle(
-              color: AppColors.textSecondary,
-              fontSize: 12,
-            ),
-          ),
+          Text('$count', style: const TextStyle(fontWeight: FontWeight.bold)),
+          Text(label, style: Theme.of(context).textTheme.bodySmall),
         ],
       ),
     );
@@ -499,6 +323,7 @@ class _UserProfileScreenState extends State<UserProfileScreen>
                     width: 52,
                     height: 52,
                     fit: BoxFit.cover,
+                    errorBuilder: (_, _, _) => const Icon(Icons.phishing),
                   ),
             title: Text('${item.fishType} · ${item.weightKg} kg'),
             subtitle: Text('${item.spotName} · ${item.createdAt ?? ''}'),
@@ -523,7 +348,7 @@ class _UserProfileScreenState extends State<UserProfileScreen>
         final spot = _spots[index];
         return Card(
           child: ListTile(
-            leading: const Icon(Icons.place, color: AppColors.primary),
+            leading: const Icon(Icons.place),
             title: Text(spot.name),
             subtitle: Text(spot.address),
             onTap: () => Navigator.push(

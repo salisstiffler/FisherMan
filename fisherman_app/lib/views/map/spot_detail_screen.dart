@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/network/api_client.dart';
 import '../../core/network/api_endpoints.dart';
+import '../../core/utils/fishing_share_card.dart';
 import '../../models/spot_model.dart';
 import '../../providers/spots_provider.dart';
 import '../publish/publish_catch_screen.dart';
@@ -31,6 +32,28 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
 
   Future<ApiResponse<dynamic>> _loadReviews() {
     return ApiClient().get(ApiEndpoints.spotReviews(spot.id));
+  }
+
+  Future<void> _shareSpot(SpotModel item) async {
+    try {
+      await FishingShareCard.share(
+        title: item.name,
+        subtitle: '钓点推荐 · ${item.waterType} · ${item.chargeType}',
+        details: [
+          '地址：${item.address}',
+          '水深：${item.depthMeters} m',
+          '目标鱼种：${item.fishTypes.join('、')}',
+          if (item.feeDesc.isNotEmpty) '费用：${item.feeDesc}',
+          if (item.description.isNotEmpty) '介绍：${item.description}',
+        ],
+        message: '发现钓点「${item.name}」：${item.address}。',
+      );
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('生成分享图片失败：$error')));
+      }
+    }
   }
 
   Future<void> _addReview() async {
@@ -107,7 +130,7 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
         );
 
         return Scaffold(
-          backgroundColor: AppColors.lightBackground,
+          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
           body: CustomScrollView(
             slivers: [
               // Hero Image & App Bar
@@ -168,6 +191,11 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
                 ),
                 actions: [
                   IconButton(
+                    tooltip: '分享钓点',
+                    icon: const Icon(Icons.share_outlined, color: Colors.white),
+                    onPressed: () => _shareSpot(currentSpot),
+                  ),
+                  IconButton(
                     icon: CircleAvatar(
                       backgroundColor: Colors.black45,
                       child: Icon(
@@ -180,12 +208,25 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
                         size: 20,
                       ),
                     ),
-                    onPressed: () {
-                      spotsProvider.toggleFavorite(currentSpot.id);
+                    onPressed: () async {
+                      final success = await spotsProvider.toggleFavorite(
+                        currentSpot.id,
+                      );
+                      if (!context.mounted) return;
+                      if (!success) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('收藏操作失败，请重试')),
+                        );
+                        return;
+                      }
+                      final updatedSpot = spotsProvider.spots.firstWhere(
+                        (item) => item.id == currentSpot.id,
+                        orElse: () => currentSpot,
+                      );
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
                           content: Text(
-                            currentSpot.isFavorited ? '已取消收藏' : '已加入我的收藏钓点',
+                            updatedSpot.isFavorited ? '已加入我的收藏钓点' : '已取消收藏',
                           ),
                           duration: const Duration(seconds: 1),
                         ),

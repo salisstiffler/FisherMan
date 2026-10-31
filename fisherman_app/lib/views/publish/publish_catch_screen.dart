@@ -233,7 +233,7 @@ class _PublishCatchScreenState extends State<PublishCatchScreen> {
               Container(
                 width: double.infinity,
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: Theme.of(context).colorScheme.surface,
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(color: AppColors.lightBorder),
                 ),
@@ -425,7 +425,7 @@ class _PublishCatchScreenState extends State<PublishCatchScreen> {
                     label: Text(fish),
                     selected: isSelected,
                     selectedColor: AppColors.primary,
-                    backgroundColor: Colors.white,
+                    backgroundColor: Theme.of(context).colorScheme.surface,
                     labelStyle: TextStyle(
                       color: isSelected ? Colors.white : AppColors.textPrimary,
                       fontWeight: isSelected
@@ -494,7 +494,7 @@ class _PublishCatchScreenState extends State<PublishCatchScreen> {
                     label: Text(method),
                     selected: isSelected,
                     selectedColor: AppColors.secondary,
-                    backgroundColor: Colors.white,
+                    backgroundColor: Theme.of(context).colorScheme.surface,
                     labelStyle: TextStyle(
                       color: isSelected ? Colors.white : AppColors.textPrimary,
                       fontWeight: isSelected

@@ -55,17 +55,19 @@ class WeatherModel {
   final int fishingScore;
   final String fishingStatus;
   final String advice;
+  final String source;
   final List<HourlyForecast> hourlyForecast;
   final List<DailyForecast> dailyForecast;
 
   WeatherModel({
-    this.temperature = '22°C',
-    this.pressure = '1013.2 hPa',
-    this.humidity = '68%',
-    this.wind = '东南风 2级',
-    this.fishingScore = 88,
-    this.fishingStatus = '适宜垂钓',
-    this.advice = '气压平稳，溶氧适中，大鱼开口活跃。',
+    this.temperature = '--',
+    this.pressure = '--',
+    this.humidity = '--',
+    this.wind = '--',
+    this.fishingScore = 0,
+    this.fishingStatus = '天气数据加载中',
+    this.advice = '',
+    this.source = '',
     this.hourlyForecast = const [],
     this.dailyForecast = const [],
   });
@@ -93,6 +95,7 @@ class WeatherModel {
       fishingScore: json['fishingScore'] ?? 85,
       fishingStatus: json['fishingStatus'] ?? '适宜垂钓',
       advice: json['advice'] ?? '气压平稳适中。',
+      source: json['source'] ?? '',
       hourlyForecast: forecasts,
       dailyForecast: dailies,
     );

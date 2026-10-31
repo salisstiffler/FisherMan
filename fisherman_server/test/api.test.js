@@ -59,10 +59,58 @@ test('GET /api/catches supports offset pagination', async () => {
 });
 
 test('GET /api/weather returns barometric pressure & fishing score', async () => {
-  const res = await fetch(`${baseUrl}/api/weather?lat=30.27&lng=120.15`);
+  const originalFetch = global.fetch;
+  const currentTime = new Date();
+  const hourlyTimes = Array.from({ length: 72 }, (_, index) => (
+    new Date(currentTime.getTime() + index * 60 * 60 * 1000)
+      .toISOString()
+      .slice(0, 16)
+  ));
+  const dailyTimes = [0, 1, 2].map((offset) => (
+    new Date(currentTime.getTime() + offset * 24 * 60 * 60 * 1000)
+      .toISOString()
+      .slice(0, 10)
+  ));
+  global.fetch = (input, init) => {
+    if (String(input).startsWith('https://api.open-meteo.com/')) {
+      return Promise.resolve({
+        ok: true,
+        json: async () => ({
+          current: {
+            time: hourlyTimes[0],
+            temperature_2m: 20,
+            relative_humidity_2m: 60,
+            pressure_msl: 1012,
+            wind_speed_10m: 5,
+            wind_direction_10m: 90,
+          },
+          hourly: {
+            time: hourlyTimes,
+            temperature_2m: hourlyTimes.map(() => 20),
+            pressure_msl: hourlyTimes.map(() => 1012),
+            precipitation_probability: hourlyTimes.map(() => 0),
+          },
+          daily: {
+            time: dailyTimes,
+            temperature_2m_min: [15, 16, 17],
+            temperature_2m_max: [22, 23, 24],
+            precipitation_probability_max: [0, 5, 10],
+          },
+        }),
+      });
+    }
+    return originalFetch(input, init);
+  };
+  let res;
+  try {
+    res = await fetch(`${baseUrl}/api/weather?lat=30.27&lng=120.15`);
+  } finally {
+    global.fetch = originalFetch;
+  }
   assert.strictEqual(res.status, 200);
   const json = await res.json();
   assert.strictEqual(json.code, 200);
+  assert.strictEqual(json.data.source, 'Open-Meteo');
   assert.ok(json.data.pressure);
   assert.ok(json.data.fishingScore >= 0);
   assert.ok(json.data.hourlyForecast.length > 0);
@@ -159,6 +207,14 @@ test('social profile, notifications, and content ownership endpoints', async () 
   });
   assert.strictEqual(catchResponse.status, 201);
   const catchId = (await catchResponse.json()).data.id;
+  const badgeProfileResponse = await request(
+    `/api/users/${owner.user.id}`,
+    owner.token,
+  );
+  const badges = (await badgeProfileResponse.json()).data.stats.badges;
+  assert.equal(badges.find((badge) => badge.id === 'first_blood').unlocked, true);
+  assert.equal(badges.find((badge) => badge.id === 'veteran').unlocked, false);
+  assert.ok(badges.some((badge) => badge.id === 'species_collector'));
   const statsResponse = await request('/api/stats/my', owner.token);
   assert.strictEqual(statsResponse.status, 200);
   const stats = (await statsResponse.json()).data;
@@ -185,6 +241,24 @@ test('social profile, notifications, and content ownership endpoints', async () 
     (await request(`/api/catches/${catchId}/like`, follower.token, 'POST')).status,
     200,
   );
+  const spotListResponse = await request('/api/spots', owner.token);
+  const favoriteSpotId = (await spotListResponse.json()).data[0].id;
+  const favoriteOn = await request(
+    `/api/spots/${favoriteSpotId}/favorite`,
+    owner.token,
+    'POST',
+  );
+  assert.equal((await favoriteOn.json()).data.isFavorited, true);
+  const favorites = await request('/api/my/favorites', owner.token);
+  assert.ok(
+    (await favorites.json()).data.some((spot) => spot.id === favoriteSpotId),
+  );
+  const favoriteOff = await request(
+    `/api/spots/${favoriteSpotId}/favorite`,
+    owner.token,
+    'POST',
+  );
+  assert.equal((await favoriteOff.json()).data.isFavorited, false);
   const commentResponse = await request(
     `/api/catches/${catchId}/comments`,
     follower.token,

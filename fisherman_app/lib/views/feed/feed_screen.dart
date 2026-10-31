@@ -60,8 +60,8 @@ class _FeedScreenState extends State<FeedScreen> {
         final spotCoords = LatLng(item.spotLat, item.spotLng);
 
         return Container(
-          decoration: const BoxDecoration(
-            color: Colors.white,
+          decoration: BoxDecoration(
+            color: Theme.of(ctx).colorScheme.surface,
             borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
           ),
           padding: const EdgeInsets.all(20),
@@ -211,7 +211,7 @@ class _FeedScreenState extends State<FeedScreen> {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: AppColors.lightBackground,
+                  color: Theme.of(ctx).colorScheme.surfaceContainerLow,
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(color: AppColors.lightBorder),
                 ),
@@ -454,7 +454,7 @@ class _FeedScreenState extends State<FeedScreen> {
         children: [
           // Filter by Fish Species
           Container(
-            color: Colors.white,
+            color: Theme.of(context).colorScheme.surface,
             padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
             child: SingleChildScrollView(
               scrollDirection: Axis.horizontal,
@@ -527,9 +527,11 @@ class _FeedScreenState extends State<FeedScreen> {
         label: Text(fish),
         selected: isSelected,
         selectedColor: AppColors.primary,
-        backgroundColor: AppColors.lightBackground,
+        backgroundColor: Theme.of(context).colorScheme.surface,
         labelStyle: TextStyle(
-          color: isSelected ? Colors.white : AppColors.textPrimary,
+          color: isSelected
+              ? Colors.white
+              : Theme.of(context).colorScheme.onSurface,
           fontSize: 12,
           fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
         ),
@@ -674,7 +676,7 @@ class _FeedScreenState extends State<FeedScreen> {
                   horizontal: 12,
                   vertical: 6,
                 ),
-                color: AppColors.lightBackground,
+                color: Theme.of(context).colorScheme.surfaceContainerLow,
                 child: Row(
                   children: [
                     const Icon(

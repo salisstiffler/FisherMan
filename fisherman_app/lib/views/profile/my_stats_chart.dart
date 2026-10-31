@@ -57,7 +57,7 @@ class _MyStatsChartState extends State<MyStatsChart> {
         return Column(
           children: [
             Card(
-              color: Colors.white,
+              color: Theme.of(context).colorScheme.surface,
               child: Padding(
                 padding: const EdgeInsets.all(14),
                 child: Column(
@@ -94,7 +94,7 @@ class _MyStatsChartState extends State<MyStatsChart> {
               ),
             ),
             Card(
-              color: Colors.white,
+              color: Theme.of(context).colorScheme.surface,
               child: Padding(
                 padding: const EdgeInsets.all(14),
                 child: Column(

@@ -110,7 +110,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.lightBackground,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: const Text('消息通知'),
         actions: [
@@ -149,7 +149,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                   final type = notification['type'] as String? ?? '';
                   return ListTile(
                     tileColor: notification['isRead'] == true
-                        ? Colors.white
+                        ? Theme.of(context).colorScheme.surface
                         : AppColors.primary.withValues(alpha: 0.06),
                     leading: CircleAvatar(
                       backgroundColor: AppColors.primaryLight,

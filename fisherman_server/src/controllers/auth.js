@@ -16,15 +16,50 @@ function getUserStats(userId) {
 
   const followersCount = db.prepare('SELECT COUNT(*) as count FROM follows WHERE following_id = ?').get(userId)?.count ?? 0;
   const followingCount = db.prepare('SELECT COUNT(*) as count FROM follows WHERE follower_id = ?').get(userId)?.count ?? 0;
+  const speciesCount = db.prepare(
+    'SELECT COUNT(DISTINCT fish_type) AS count FROM catches WHERE user_id = ?',
+  ).get(userId).count;
+  const catchDays = db.prepare(`
+    SELECT DISTINCT date(created_at) AS catch_day
+    FROM catches
+    WHERE user_id = ? AND date(created_at) IS NOT NULL
+    ORDER BY catch_day DESC
+    LIMIT 365
+  `).all(userId).map((row) => row.catch_day);
+  let currentStreak = 0;
+  let longestStreak = 0;
+  let previousDay = null;
+  for (const catchDay of catchDays) {
+    const day = Date.parse(`${catchDay}T00:00:00Z`);
+    const previous = previousDay == null
+      ? null
+      : Date.parse(`${previousDay}T00:00:00Z`);
+    currentStreak = previous != null && previous - day === 86400000
+      ? currentStreak + 1
+      : 1;
+    longestStreak = Math.max(longestStreak, currentStreak);
+    previousDay = catchDay;
+  }
 
-  // Compute fun badges for fishermen
-  const badges = [];
-  if (catchStats.count >= 1) badges.push({ id: 'first_blood', name: '破空先锋', icon: '🎣', desc: '首开纪录，成功发布第1尾战报', target: 1, current: catchStats.count });
-  if (catchStats.count >= 5) badges.push({ id: 'veteran', name: '老钓骨', icon: '🏆', desc: '垂钓常客，累计发布5次以上出钓战报', target: 5, current: catchStats.count });
-  if (catchStats.max_weight >= 5.0) badges.push({ id: 'monster_hunter', name: '巨物猎人', icon: '🦈', desc: '博击巨物，单尾渔获突破 5.0 kg', target: 5.0, current: catchStats.max_weight });
-  if (spotCount >= 2) badges.push({ id: 'spot_explorer', name: '钓点拓荒者', icon: '🗺️', desc: '标点大师，累计众包标记 2 个以上优质水域', target: 2, current: spotCount });
-  if (catchStats.total_weight >= 20.0) badges.push({ id: 'master_angler', name: '百斤大师', icon: '👑', desc: '鱼获丰硕，累计总重量超过 20 kg', target: 20.0, current: catchStats.total_weight });
-  if (followersCount >= 3) badges.push({ id: 'famous_angler', name: '名扬钓界', icon: '🌟', desc: '名震四方，拥有 3 位以上钓友粉丝', target: 3, current: followersCount });
+  const badge = (id, name, icon, desc, target, current) => ({
+    id,
+    name,
+    icon,
+    desc,
+    target,
+    current: Math.round(current * 10) / 10,
+    unlocked: current >= target,
+  });
+  const badges = [
+    badge('first_blood', '破空先锋', '🎣', '首开纪录，成功发布第1尾战报', 1, catchStats.count),
+    badge('veteran', '老钓骨', '🏆', '累计发布5次出钓战报', 5, catchStats.count),
+    badge('monster_hunter', '巨物猎人', '🦈', '单尾渔获突破 5.0 kg', 5, catchStats.max_weight),
+    badge('spot_explorer', '钓点拓荒者', '🗺️', '累计标记 2 个优质水域', 2, spotCount),
+    badge('master_angler', '百斤大师', '👑', '累计渔获总重量达到 20 kg', 20, catchStats.total_weight),
+    badge('famous_angler', '名扬钓界', '🌟', '拥有 3 位以上钓友粉丝', 3, followersCount),
+    badge('species_collector', '鱼种收藏家', '🐠', '战报记录至少 5 种不同鱼类', 5, speciesCount),
+    badge('streak_angler', '连竿达人', '🔥', '连续出钓记录达到 3 天', 3, longestStreak),
+  ];
 
   return {
     spotsCreated: spotCount,

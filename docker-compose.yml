@@ -1,0 +1,32 @@
+services:
+  backend:
+    container_name: fisherman_backend
+    build:
+      context: ./fisherman_server
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      NODE_ENV: production
+      HOST: 0.0.0.0
+      PORT: 8080
+      DB_PATH: /app/data/fisherman.db
+      JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET before starting the backend}
+    volumes:
+      - fisherman_data:/app/data
+      - fisherman_uploads:/app/public/uploads
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:8080/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+
+volumes:
+  fisherman_data:
+  fisherman_uploads:

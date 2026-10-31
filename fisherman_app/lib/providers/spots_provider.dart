@@ -167,26 +167,31 @@ class SpotsProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> toggleFavorite(int spotId) async {
+  Future<bool> toggleFavorite(int spotId) async {
     final index = _spots.indexWhere((s) => s.id == spotId);
-    if (index != -1) {
-      final current = _spots[index];
-      final newStatus = !current.isFavorited;
-      _spots[index] = current.copyWith(
-        isFavorited: newStatus,
-        likesCount: newStatus
-            ? current.likesCount + 1
-            : (current.likesCount > 0 ? current.likesCount - 1 : 0),
-      );
-      if (_selectedSpot?.id == spotId) {
-        _selectedSpot = _spots[index];
-      }
-      notifyListeners();
+    if (index == -1) return false;
+
+    final current = _spots[index];
+    final response = await _api.post(ApiEndpoints.toggleFavorite(spotId));
+    if (!response.success || response.data is! Map) {
+      return false;
     }
 
-    try {
-      await _api.post(ApiEndpoints.toggleFavorite(spotId));
-    } catch (_) {}
+    final isFavorited = response.data['isFavorited'];
+    if (isFavorited is! bool) return false;
+    final favoriteDelta = isFavorited == current.isFavorited
+        ? 0
+        : isFavorited
+        ? 1
+        : -1;
+    final updated = current.copyWith(
+      isFavorited: isFavorited,
+      likesCount: (current.likesCount + favoriteDelta).clamp(0, 999999),
+    );
+    _spots[index] = updated;
+    if (_selectedSpot?.id == spotId) _selectedSpot = updated;
+    notifyListeners();
+    return true;
   }
 
   Future<bool> updateSpot(int spotId, {required String description}) async {

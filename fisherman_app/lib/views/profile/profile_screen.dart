@@ -65,22 +65,36 @@ class _ProfileScreenState extends State<ProfileScreen>
           children: [
             Text(badge.icon, style: const TextStyle(fontSize: 28)),
             const SizedBox(width: 10),
-            Text(badge.name, style: const TextStyle(fontWeight: FontWeight.bold)),
+            Text(
+              badge.name,
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
           ],
         ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(badge.desc.isNotEmpty ? badge.desc : '恭喜达成钓界专属荣耀成就！', style: const TextStyle(fontSize: 14)),
+            Text(
+              badge.desc.isNotEmpty ? badge.desc : '钓界专属荣耀成就！',
+              style: const TextStyle(fontSize: 14),
+            ),
             const SizedBox(height: 12),
             if (badge.target > 0) ...[
-              Text('达成进度: ${badge.current} / ${badge.target}', style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+              Text(
+                '${badge.unlocked ? '已解锁' : '未解锁'} · 进度 ${badge.current} / ${badge.target}',
+                style: const TextStyle(
+                  fontSize: 12,
+                  color: AppColors.textSecondary,
+                ),
+              ),
               const SizedBox(height: 6),
               LinearProgressIndicator(
                 value: (badge.current / badge.target).clamp(0.0, 1.0),
                 backgroundColor: AppColors.lightBorder,
-                valueColor: const AlwaysStoppedAnimation<Color>(AppColors.primary),
+                valueColor: const AlwaysStoppedAnimation<Color>(
+                  AppColors.primary,
+                ),
               ),
             ],
           ],
@@ -333,7 +347,7 @@ class _ProfileScreenState extends State<ProfileScreen>
         .toList();
 
     return Scaffold(
-      backgroundColor: AppColors.lightBackground,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: const Text('我的钓界'),
         actions: [
@@ -547,7 +561,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                       Align(
                         alignment: Alignment.centerLeft,
                         child: Text(
-                          '荣耀钓王勋章 (${stats.badges.length})',
+                          '荣耀勋章 (${stats.badges.where((b) => b.unlocked).length}/${stats.badges.length})',
                           style: const TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 14,
@@ -555,37 +569,50 @@ class _ProfileScreenState extends State<ProfileScreen>
                         ),
                       ),
                       const SizedBox(height: 8),
-                      Row(
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
                         children: stats.badges.map((b) {
                           return InkWell(
                             onTap: () => _showBadgeDialog(context, b),
                             borderRadius: BorderRadius.circular(10),
-                            child: Container(
-                              margin: const EdgeInsets.only(right: 8),
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 10,
-                                vertical: 6,
-                              ),
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(10),
-                                border: Border.all(color: AppColors.lightBorder),
-                              ),
-                              child: Row(
-                                children: [
-                                  Text(
-                                    b.icon,
-                                    style: const TextStyle(fontSize: 16),
+                            child: Opacity(
+                              opacity: b.unlocked ? 1 : 0.5,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 10,
+                                  vertical: 6,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: b.unlocked
+                                      ? Theme.of(context).colorScheme.surface
+                                      : Theme.of(context)
+                                            .colorScheme
+                                            .surfaceContainerHighest,
+                                  borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .outlineVariant,
                                   ),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    b.name,
-                                    style: const TextStyle(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.bold,
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(
+                                      b.icon,
+                                      style: const TextStyle(fontSize: 16),
                                     ),
-                                  ),
-                                ],
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      b.name,
+                                      style: const TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
                             ),
                           );
@@ -597,7 +624,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                     // Tab bar for Catches vs Favorites
                     Container(
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: Theme.of(context).colorScheme.surface,
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: TabBar(
@@ -771,9 +798,11 @@ class _ProfileScreenState extends State<ProfileScreen>
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 10),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: Theme.of(context).colorScheme.surface,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: AppColors.lightBorder),
+          border: Border.all(
+            color: Theme.of(context).colorScheme.outlineVariant,
+          ),
         ),
         child: Column(
           children: [

@@ -43,7 +43,7 @@ class _FollowListScreenState extends State<FollowListScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.lightBackground,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(title: Text(widget.showFollowers ? '粉丝' : '关注')),
       body: FutureBuilder<List<Map<String, dynamic>>>(
         future: _users,

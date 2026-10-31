@@ -8,6 +8,7 @@
 fisherman_app/build/
 build/
 *.lock
+!fisherman_app/pubspec.lock
 
 # Node & Backend
 node_modules/

@@ -3,10 +3,31 @@ const { createNotification } = require('./notifications');
 
 exports.listCatches = (req, res) => {
   // Pagination parameters from query string (default to the client-side standard)
-  const limit = Number(req.query.limit) || 50;
-  const offset = Number(req.query.offset) || 0;
+  const requestedLimit = Number.parseInt(req.query.limit, 10);
+  const requestedOffset = Number.parseInt(req.query.offset, 10);
+  const limit = Number.isFinite(requestedLimit)
+    ? Math.min(Math.max(requestedLimit, 1), 100)
+    : 50;
+  const offset = Number.isFinite(requestedOffset)
+    ? Math.max(requestedOffset, 0)
+    : 0;
   const { fishType, spotId, userId } = req.query;
   const currentUserId = req.user?.id || 0;
+
+  const filters = [];
+  const filterParams = [];
+  if (fishType && fishType !== '全部') {
+    filters.push('c.fish_type LIKE ?');
+    filterParams.push(`%${fishType}%`);
+  }
+  if (spotId) {
+    filters.push('c.spot_id = ?');
+    filterParams.push(Number(spotId));
+  }
+  if (userId) {
+    filters.push('c.user_id = ?');
+    filterParams.push(Number(userId));
+  }
 
   let query = `
     SELECT 
@@ -24,55 +45,19 @@ exports.listCatches = (req, res) => {
     FROM catches c
     JOIN users u ON c.user_id = u.id
     LEFT JOIN spots s ON c.spot_id = s.id
-    WHERE 1=1
+    WHERE 1=1 ${filters.map((filter) => ` AND ${filter}`).join('')}
   `;
-  const params = [currentUserId];
-
-  if (fishType && fishType !== '全部') {
-    query += ` AND c.fish_type LIKE ?`;
-    params.push(`%${fishType}%`);
-  }
-
-  if (spotId) {
-    query += ` AND c.spot_id = ?`;
-    params.push(Number(spotId));
-  }
-
-  if (userId) {
-    query += ` AND c.user_id = ?`;
-    params.push(Number(userId));
-  }
-  
-  // Apply pagination (Limit and Offset)
+  const params = [currentUserId, ...filterParams];
   query += ` ORDER BY c.created_at DESC LIMIT ? OFFSET ?`;
-  params.push(Math.min(Math.max(limit, 1), 100)); // Limit maximum at 100
-  params.push(Math.max(0, offset));
+  params.push(limit, offset);
 
   // Fetch the list of catches
   const rows = db.prepare(query).all(...params);
 
   // Count total matching records for potential pagination UI usage
-  const totalCountQuery = `SELECT COUNT(c.id) FROM catches c WHERE 1=1`;
-  let totalMatches = 0;
-  let totalParams = [currentUserId];
-  let totalQuery = totalCountQuery;
-
-  if (fishType && fishType !== '全部') {
-    totalQuery += ` AND c.fish_type LIKE ?`;
-    totalParams.push(`%${fishType}%`);
-  }
-  if (spotId) {
-    totalQuery += ` AND c.spot_id = ?`;
-    totalParams.push(Number(spotId));
-  }
-  if (userId) {
-    totalQuery += ` AND c.user_id = ?`;
-    totalParams.push(Number(userId));
-  }
-  
-  const totalRows = db.prepare(totalQuery).all(...totalParams);
-  totalMatches = totalRows[0] ? totalRows[0].count : 0;
-
+  const totalMatches = db.prepare(
+    `SELECT COUNT(c.id) AS count FROM catches c WHERE 1=1 ${filters.map((filter) => ` AND ${filter}`).join('')}`,
+  ).get(...filterParams).count;
 
   res.json({
     code: 200,
@@ -104,9 +89,9 @@ exports.listCatches = (req, res) => {
     })),
     pagination: {
       total: totalMatches,
-      limit: limit,
-      offset: offset,
-      hasMore: totalMatches > ((offset + limit) || 0),
+      limit,
+      offset,
+      hasMore: totalMatches > offset + limit,
     }
   });
 };

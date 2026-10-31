@@ -5,6 +5,7 @@ class UserBadge {
   final String desc;
   final double target;
   final double current;
+  final bool unlocked;
 
   UserBadge({
     required this.id,
@@ -13,6 +14,7 @@ class UserBadge {
     this.desc = '',
     this.target = 0,
     this.current = 0,
+    this.unlocked = true,
   });
 
   factory UserBadge.fromJson(Map<String, dynamic> json) {
@@ -23,17 +25,19 @@ class UserBadge {
       desc: json['desc'] ?? '',
       target: (json['target'] as num?)?.toDouble() ?? 0,
       current: (json['current'] as num?)?.toDouble() ?? 0,
+      unlocked: json['unlocked'] as bool? ?? true,
     );
   }
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'name': name,
-        'icon': icon,
-        'desc': desc,
-        'target': target,
-        'current': current,
-      };
+    'id': id,
+    'name': name,
+    'icon': icon,
+    'desc': desc,
+    'target': target,
+    'current': current,
+    'unlocked': unlocked,
+  };
 }
 
 class UserStats {

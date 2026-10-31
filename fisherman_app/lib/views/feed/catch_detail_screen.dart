@@ -5,6 +5,7 @@ import 'package:latlong2/latlong.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/constants/app_colors.dart';
+import '../../core/utils/fishing_share_card.dart';
 import '../../models/catch_model.dart';
 import '../../models/spot_model.dart';
 import '../../providers/auth_provider.dart';
@@ -35,6 +36,31 @@ class _CatchDetailScreenState extends State<CatchDetailScreen> {
   void dispose() {
     _commentController.dispose();
     super.dispose();
+  }
+
+  Future<void> _shareCatch(CatchModel item) async {
+    try {
+      await FishingShareCard.share(
+        title: '${item.fishType} · ${item.weightKg} kg',
+        subtitle: '${item.userNickname} 的渔获战报',
+        details: [
+          '钓点：${item.spotName}',
+          '作钓方式：${item.fishingMethod}',
+          '水深：${item.depthM} m',
+          '饵料：${item.bait}',
+          if (item.lengthCm > 0) '体长：${item.lengthCm} cm',
+          if (item.notes.isNotEmpty) '战报：${item.notes}',
+        ],
+        message:
+            '${item.userNickname} 发布了 ${item.fishType} 渔获战报，'
+            '重量 ${item.weightKg} kg，钓点：${item.spotName}。',
+      );
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('生成分享图片失败：$error')));
+      }
+    }
   }
 
   void _sendComment() async {
@@ -186,22 +212,14 @@ class _CatchDetailScreenState extends State<CatchDetailScreen> {
         final spotCoords = LatLng(item.spotLat, item.spotLng);
 
         return Scaffold(
-          backgroundColor: AppColors.lightBackground,
+          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
           appBar: AppBar(
             title: const Text('渔获战报'),
             actions: [
               IconButton(
                 icon: const Icon(Icons.share_outlined),
                 tooltip: '分享战报',
-                onPressed: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(
-                        '已生成【${item.userNickname}】的 ${item.fishType} (${item.weightKg}kg) 战报海报！',
-                      ),
-                    ),
-                  );
-                },
+                onPressed: () => _shareCatch(item),
               ),
             ],
           ),
