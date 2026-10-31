@@ -86,6 +86,11 @@
 }
 ```
 
+#### 获取指定钓友公开资料
+- **URL**: `GET /api/users/:id`
+- **Headers**: `Authorization: Bearer <token>` (可选)
+- **Response**: 返回目标钓友公开个人信息、钓龄、目标鱼、勋章列表、统计信息（获赞、战报数、创建钓点数、粉丝数、关注数）以及当前访问者与该钓友的关注关系 (`isFollowing`)。
+
 ---
 
 ### 3. 钓点模块 (`/api/spots`)
@@ -127,6 +132,30 @@
 - **URL**: `POST /api/spots/:id/favorite`
 - **Headers**: `Authorization: Bearer <token>`
 
+#### 钓点评分与评价 (1~5 星)
+- **URL**: `POST /api/spots/:id/reviews`
+- **Headers**: `Authorization: Bearer <token>`
+- **Request Body**:
+```json
+{
+  "rating": 5,
+  "content": "水质极佳，水草区多大板鲫，老板人实在，推荐来试！"
+}
+```
+
+#### 获取钓点评价列表
+- **URL**: `GET /api/spots/:id/reviews?limit=20&offset=0`
+- **Response**: 返回评价列表、用户头像昵称、评分及钓点平均得分 (`avgRating`)。
+
+#### 删除本人创建的钓点
+- **URL**: `DELETE /api/spots/:id`
+- **Headers**: `Authorization: Bearer <token>`
+
+#### 修改本人创建的钓点信息
+- **URL**: `PUT /api/spots/:id`
+- **Headers**: `Authorization: Bearer <token>`
+- **Request Body**: 支持更新钓点名称、描述、水域类型、收费描述、水深、规则及封面图。
+
 ---
 
 ### 4. 渔获与战报社区模块 (`/api/catches`)
@@ -167,13 +196,77 @@
 - **Request Body**:
 ```json
 {
-  "content": "大师牛逼！请教下子线搭配的是几号？"
+  "content": "大师牛逼！请教下子线搭配的是几号？",
+  "parentId": null
+}
+```
+
+#### 删除评论 (战报作者或评论本人)
+- **URL**: `DELETE /api/catches/:catchId/comments/:commentId`
+- **Headers**: `Authorization: Bearer <token>`
+
+#### 删除本人发布的战报
+- **URL**: `DELETE /api/catches/:id`
+- **Headers**: `Authorization: Bearer <token>`
+
+#### 编辑更新本人战报
+- **URL**: `PUT /api/catches/:id`
+- **Headers**: `Authorization: Bearer <token>`
+- **Request Body**:
+```json
+{
+  "notes": "修改了用饵心得：下午换成红色软饵后连中3尾！",
+  "fishingMethod": "精细路亚"
 }
 ```
 
 ---
 
-### 5. 水文气象与出钓指数 (`/api/weather`)
+### 5. 社交互动与关注网络 (`/api/users`)
+
+#### 关注/取消关注用户
+- **URL**: `POST /api/users/:id/follow`
+- **Headers**: `Authorization: Bearer <token>`
+- **Response**: 返回 `{ "isFollowing": true/false }`，并自动触发系统通知。
+
+#### 获取粉丝列表
+- **URL**: `GET /api/users/:id/followers`
+- **Headers**: `Authorization: Bearer <token>` (可选)
+
+#### 获取关注列表
+- **URL**: `GET /api/users/:id/following`
+- **Headers**: `Authorization: Bearer <token>` (可选)
+
+---
+
+### 6. 消息通知中心 (`/api/notifications`)
+
+#### 获取通知列表与未读数
+- **URL**: `GET /api/notifications?limit=30&offset=0`
+- **Headers**: `Authorization: Bearer <token>`
+- **Response**: 包含点赞、评论、关注类型的系统通知流及 `unreadCount`。
+
+#### 全部标为已读
+- **URL**: `PUT /api/notifications/read`
+- **Headers**: `Authorization: Bearer <token>`
+
+#### 查询实时未读消息数
+- **URL**: `GET /api/notifications/unread-count`
+- **Headers**: `Authorization: Bearer <token>`
+
+---
+
+### 7. 全局综合搜索 (`/api/search`)
+
+#### 联合搜索 (战报、钓点、用户)
+- **URL**: `GET /api/search?q=千岛湖&type=all`
+- **Query Parameters**:
+  - `q`: 搜索关键词
+  - `type`: `all` | `catches` | `spots` | `users`
+
+---
+
+### 8. 水文气象与出钓指数 (`/api/weather`)
 - **URL**: `GET /api/weather?lat=30.244&lng=120.145`
 - **Response**: 返回当前实时气压（hPa）、气温、风向风力、湿度、24小时逐时气压曲线及综合出钓咬口建议。
 
