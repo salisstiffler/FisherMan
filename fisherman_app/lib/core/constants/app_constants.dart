@@ -2,8 +2,10 @@ class AppConstants {
   static const String appName = '钓鱼佬';
   static const String appSlogan = '记录每一次扬竿，分享每一个大鱼时刻';
 
-  // Base API URL default
-  static const String defaultApiUrl = 'http://localhost:8080';
+  static const String defaultApiUrl = String.fromEnvironment(
+    'API_BASE_URL',
+    defaultValue: 'https://apifisherman.berlin2026.dpdns.org',
+  );
 
   // Target Fish Species in China
   static const List<String> popularFishList = [

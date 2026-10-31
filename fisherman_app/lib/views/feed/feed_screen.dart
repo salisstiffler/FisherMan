@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_constants.dart';
+import '../../core/utils/fishing_navigation.dart';
 import '../../models/catch_model.dart';
 import '../../models/spot_model.dart';
 import '../../providers/catches_provider.dart';
@@ -330,7 +331,13 @@ class _FeedScreenState extends State<FeedScreen> {
                       label: const Text('路线导航前往'),
                       onPressed: () {
                         Navigator.pop(ctx);
-                        _showNavigationAppPicker(context, item);
+                        FishingNavigation.open(
+                          context,
+                          name: item.spotName,
+                          address: item.spotAddress,
+                          latitude: item.spotLat,
+                          longitude: item.spotLng,
+                        );
                       },
                     ),
                   ),
@@ -341,88 +348,6 @@ class _FeedScreenState extends State<FeedScreen> {
           ),
         );
       },
-    );
-  }
-
-  void _showNavigationAppPicker(BuildContext context, CatchModel item) {
-    showDialog(
-      context: context,
-      builder: (dialogCtx) => AlertDialog(
-        title: Row(
-          children: [
-            const Icon(Icons.navigation, color: AppColors.primary),
-            const SizedBox(width: 8),
-            Text('出钓导航: ${item.spotName}'),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('目标水域: ${item.spotAddress}'),
-            const SizedBox(height: 8),
-            Text(
-              'GPS 坐标: ${item.spotLat.toStringAsFixed(4)}, ${item.spotLng.toStringAsFixed(4)}',
-            ),
-            const SizedBox(height: 16),
-            const Text(
-              '请选择您常用的地图导航应用：',
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-            ),
-            const SizedBox(height: 8),
-            ListTile(
-              dense: true,
-              leading: const Icon(Icons.map, color: Colors.blue),
-              title: const Text('高德地图 (AMap)'),
-              subtitle: const Text('自驾/路线规划'),
-              onTap: () {
-                Navigator.pop(dialogCtx);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('已唤起高德地图，正在规划前往【${item.spotName}】的出钓路线'),
-                  ),
-                );
-              },
-            ),
-            ListTile(
-              dense: true,
-              leading: const Icon(Icons.explore, color: Colors.green),
-              title: const Text('腾讯地图 / 微信定位'),
-              subtitle: const Text('实景钓点周边导航'),
-              onTap: () {
-                Navigator.pop(dialogCtx);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('已唤起腾讯地图，正在规划前往【${item.spotName}】的出钓路线'),
-                  ),
-                );
-              },
-            ),
-            ListTile(
-              dense: true,
-              leading: const Icon(Icons.copy, color: AppColors.primary),
-              title: const Text('复制坐标并在系统地图中搜索'),
-              onTap: () {
-                Navigator.pop(dialogCtx);
-                Clipboard.setData(
-                  ClipboardData(text: '${item.spotLat}, ${item.spotLng}'),
-                );
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('已复制精确 GPS 坐标，可直接粘贴至任意地图软件开启导航！'),
-                  ),
-                );
-              },
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogCtx),
-            child: const Text('关闭'),
-          ),
-        ],
-      ),
     );
   }
 

@@ -190,13 +190,24 @@ class _SpotMapScreenState extends State<SpotMapScreen> {
                   // Search Bar with View Switcher
                   Container(
                     decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.surface,
-                      borderRadius: BorderRadius.circular(16),
+                      gradient: LinearGradient(
+                        colors: [
+                          Theme.of(context).colorScheme.surface
+                              .withValues(alpha: 0.98),
+                          Theme.of(context).colorScheme.surface
+                              .withValues(alpha: 0.91),
+                        ],
+                      ),
+                      borderRadius: BorderRadius.circular(22),
+                      border: Border.all(
+                        color: Theme.of(context).colorScheme.outlineVariant
+                            .withValues(alpha: 0.5),
+                      ),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.08),
-                          blurRadius: 10,
-                          offset: const Offset(0, 4),
+                          color: AppColors.primaryDark.withValues(alpha: 0.12),
+                          blurRadius: 24,
+                          offset: const Offset(0, 8),
                         ),
                       ],
                     ),
@@ -274,8 +285,8 @@ class _SpotMapScreenState extends State<SpotMapScreen> {
                                   : FontWeight.normal,
                               fontSize: 12,
                             ),
-                            elevation: 2,
-                            pressElevation: 4,
+                            elevation: isSelected ? 3 : 0,
+                            pressElevation: 5,
                             onSelected: (_) => spotsProvider.setWaterType(type),
                           ),
                         );
@@ -409,9 +420,25 @@ class _SpotMapScreenState extends State<SpotMapScreen> {
               bottom: 24,
               left: 16,
               right: 16,
-              child: _buildSpotBottomPreview(
-                spotsProvider.selectedSpot!,
-                spotsProvider,
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 320),
+                switchInCurve: Curves.easeOutBack,
+                switchOutCurve: Curves.easeIn,
+                transitionBuilder: (child, animation) => FadeTransition(
+                  opacity: animation,
+                  child: SlideTransition(
+                    position: Tween<Offset>(
+                      begin: const Offset(0, 0.16),
+                      end: Offset.zero,
+                    ).animate(animation),
+                    child: child,
+                  ),
+                ),
+                child: _buildSpotBottomPreview(
+                  spotsProvider.selectedSpot!,
+                  spotsProvider,
+                  key: ValueKey(spotsProvider.selectedSpot!.id),
+                ),
               ),
             ),
 
@@ -504,24 +531,52 @@ class _SpotMapScreenState extends State<SpotMapScreen> {
                 point: LatLng(spot.lat, spot.lng),
                 width: isSelected ? 50 : 40,
                 height: isSelected ? 50 : 40,
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  decoration: BoxDecoration(
-                    color: isSelected
-                        ? AppColors.goldenFish
-                        : AppColors.primary,
-                    shape: BoxShape.circle,
-                    border: Border.all(color: Colors.white, width: 2.5),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.3),
-                        blurRadius: 6,
-                        offset: const Offset(0, 3),
+                child: AnimatedScale(
+                  scale: isSelected ? 1.12 : 1,
+                  duration: const Duration(milliseconds: 280),
+                  curve: Curves.easeOutBack,
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 280),
+                    curve: Curves.easeOutCubic,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: isSelected
+                            ? const [
+                                AppColors.goldenLight,
+                                AppColors.goldenFish,
+                              ]
+                            : const [
+                                AppColors.primaryLight,
+                                AppColors.primaryDark,
+                              ],
                       ),
-                    ],
-                  ),
-                  child: const Center(
-                    child: Icon(Icons.phishing, color: Colors.white, size: 22),
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: Colors.white,
+                        width: isSelected ? 3.5 : 2.5,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color:
+                              (isSelected
+                                      ? AppColors.goldenFish
+                                      : AppColors.primary)
+                                  .withValues(alpha: 0.4),
+                          blurRadius: isSelected ? 18 : 10,
+                          spreadRadius: isSelected ? 2 : 0,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: const Center(
+                      child: Icon(
+                        Icons.phishing,
+                        color: Colors.white,
+                        size: 22,
+                      ),
+                    ),
                   ),
                 ),
               );
@@ -707,96 +762,135 @@ class _SpotMapScreenState extends State<SpotMapScreen> {
     );
   }
 
-  Widget _buildSpotBottomPreview(SpotModel spot, SpotsProvider provider) {
+  Widget _buildSpotBottomPreview(
+    SpotModel spot,
+    SpotsProvider provider, {
+    Key? key,
+  }) {
     return Card(
+      key: key,
       elevation: 8,
-      shadowColor: Colors.black26,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    spot.name,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.close, size: 20),
-                  onPressed: () => provider.selectSpot(null),
-                ),
-              ],
-            ),
-            Row(
-              children: [
-                const Icon(Icons.place, size: 14, color: AppColors.primary),
-                const SizedBox(width: 4),
-                Expanded(
-                  child: Text(
-                    spot.address,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: AppColors.textSecondary,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-                Text(
-                  '${spot.chargeType} | 水深${spot.depthMeters}m',
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: AppColors.primary,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    '出鱼: ${spot.fishTypes.join('、')}',
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: AppColors.textSecondary,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-                ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 14,
-                      vertical: 8,
-                    ),
-                    textStyle: const TextStyle(fontSize: 12),
-                  ),
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => SpotDetailScreen(spot: spot),
+      shadowColor: AppColors.primaryDark.withValues(alpha: 0.22),
+      clipBehavior: Clip.antiAlias,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      child: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Theme.of(context).colorScheme.surface,
+              Theme.of(context).colorScheme.surfaceContainerHighest
+                  .withValues(alpha: 0.55),
+            ],
+          ),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 14, 16, 15),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      spot.name,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 17,
+                        letterSpacing: -0.3,
                       ),
-                    );
-                  },
-                  child: const Text('查看钓点详情'),
-                ),
-              ],
-            ),
-          ],
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close, size: 20),
+                    onPressed: () => provider.selectSpot(null),
+                  ),
+                ],
+              ),
+              Row(
+                children: [
+                  const Icon(Icons.place, size: 14, color: AppColors.primary),
+                  const SizedBox(width: 4),
+                  Expanded(
+                    child: Text(
+                      spot.address,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: AppColors.textSecondary,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  Text(
+                    '${spot.catchCount} 条战绩 · ${spot.chargeType}',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: AppColors.primary,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      '常见鱼种：${spot.fishTypes.take(3).join(' · ')}',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: AppColors.textSecondary,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  FilledButton.icon(
+                    style: FilledButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 10,
+                      ),
+                      visualDensity: VisualDensity.compact,
+                    ),
+                    onPressed: () => Navigator.push(
+                      context,
+                      PageRouteBuilder<void>(
+                        transitionDuration: const Duration(milliseconds: 420),
+                        pageBuilder: (_, animation, secondaryAnimation) =>
+                            SpotDetailScreen(spot: spot),
+                        transitionsBuilder:
+                            (_, animation, secondaryAnimation, child) {
+                              final curved = CurvedAnimation(
+                                parent: animation,
+                                curve: Curves.easeOutCubic,
+                              );
+                              return FadeTransition(
+                                opacity: curved,
+                                child: SlideTransition(
+                                  position: Tween<Offset>(
+                                    begin: const Offset(0, 0.04),
+                                    end: Offset.zero,
+                                  ).animate(curved),
+                                  child: child,
+                                ),
+                              );
+                            },
+                      ),
+                    ),
+                    icon: const Icon(Icons.auto_awesome, size: 16),
+                    label: const Text('详情与战绩'),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );

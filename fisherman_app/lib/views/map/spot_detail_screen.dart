@@ -4,9 +4,12 @@ import 'package:provider/provider.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/network/api_client.dart';
 import '../../core/network/api_endpoints.dart';
+import '../../core/utils/fishing_navigation.dart';
 import '../../core/utils/fishing_share_card.dart';
+import '../../models/catch_model.dart';
 import '../../models/spot_model.dart';
 import '../../providers/spots_provider.dart';
+import '../feed/catch_detail_screen.dart';
 import '../publish/publish_catch_screen.dart';
 import '../profile/user_profile_screen.dart';
 
@@ -21,6 +24,7 @@ class SpotDetailScreen extends StatefulWidget {
 
 class _SpotDetailScreenState extends State<SpotDetailScreen> {
   late Future<ApiResponse<dynamic>> _reviewsFuture;
+  late Future<ApiResponse<dynamic>> _catchesFuture;
 
   SpotModel get spot => widget.spot;
 
@@ -28,10 +32,18 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
   void initState() {
     super.initState();
     _reviewsFuture = _loadReviews();
+    _catchesFuture = _loadSpotCatches();
   }
 
   Future<ApiResponse<dynamic>> _loadReviews() {
     return ApiClient().get(ApiEndpoints.spotReviews(spot.id));
+  }
+
+  Future<ApiResponse<dynamic>> _loadSpotCatches() {
+    return ApiClient().get(
+      ApiEndpoints.catches,
+      queryParams: {'spotId': spot.id, 'limit': 100, 'offset': 0},
+    );
   }
 
   Future<void> _shareSpot(SpotModel item) async {
@@ -272,6 +284,12 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
                       ),
                       const SizedBox(height: 16),
 
+                      _buildSpotStats(currentSpot),
+                      const SizedBox(height: 16),
+
+                      _buildSpotCatchHistory(currentSpot),
+                      const SizedBox(height: 16),
+
                       _buildReviewsSection(),
                       const SizedBox(height: 16),
 
@@ -303,7 +321,6 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
 
                       // Fee Card
                       Card(
-                        color: Colors.white,
                         child: Padding(
                           padding: const EdgeInsets.all(14.0),
                           child: Row(
@@ -328,7 +345,7 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
                                     const SizedBox(height: 2),
                                     Text(
                                       currentSpot.feeDesc,
-                                      style: const TextStyle(
+                                      style: TextStyle(
                                         color: AppColors.textSecondary,
                                         fontSize: 13,
                                       ),
@@ -376,10 +393,12 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
                                 ),
                                 Text(
                                   fish,
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontSize: 13,
                                     fontWeight: FontWeight.w600,
-                                    color: AppColors.primaryDark,
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .primary,
                                   ),
                                 ),
                               ],
@@ -401,16 +420,18 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
                       Container(
                         padding: const EdgeInsets.all(14),
                         decoration: BoxDecoration(
-                          color: Colors.white,
+                          color: Theme.of(context).colorScheme.surface,
                           borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: AppColors.lightBorder),
+                          border: Border.all(
+                            color: Theme.of(context).colorScheme.outlineVariant,
+                          ),
                         ),
                         child: Text(
                           currentSpot.description,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 14,
                             height: 1.6,
-                            color: AppColors.textPrimary,
+                            color: Theme.of(context).colorScheme.onSurface,
                           ),
                         ),
                       ),
@@ -428,25 +449,29 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
                       Container(
                         padding: const EdgeInsets.all(14),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFFEF3C7),
+                          color: AppColors.goldenFish.withValues(alpha: 0.12),
                           borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: const Color(0xFFFDE68A)),
+                          border: Border.all(
+                            color: AppColors.goldenFish.withValues(alpha: 0.3),
+                          ),
                         ),
                         child: Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             const Icon(
                               Icons.eco,
-                              color: Color(0xFFD97706),
+                              color: AppColors.goldenFish,
                               size: 20,
                             ),
                             const SizedBox(width: 8),
                             Expanded(
                               child: Text(
                                 currentSpot.rules,
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 13,
-                                  color: Color(0xFF92400E),
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .onSurface,
                                   height: 1.4,
                                 ),
                               ),
@@ -466,7 +491,6 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
                       ),
                       const SizedBox(height: 8),
                       Card(
-                        color: Colors.white,
                         child: Padding(
                           padding: const EdgeInsets.all(14.0),
                           child: Column(
@@ -508,7 +532,7 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
                                       Icons.navigation_outlined,
                                       size: 16,
                                     ),
-                                    label: const Text('路线导航'),
+                                    label: const Text('开始导航'),
                                     style: ElevatedButton.styleFrom(
                                       padding: const EdgeInsets.symmetric(
                                         horizontal: 14,
@@ -516,17 +540,13 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
                                       ),
                                       textStyle: const TextStyle(fontSize: 13),
                                     ),
-                                    onPressed: () {
-                                      ScaffoldMessenger.of(
-                                        context,
-                                      ).showSnackBar(
-                                        SnackBar(
-                                          content: Text(
-                                            '已复制钓点坐标: ${currentSpot.lat}, ${currentSpot.lng}，正在规划出钓路线',
-                                          ),
-                                        ),
-                                      );
-                                    },
+                                    onPressed: () => FishingNavigation.open(
+                                      context,
+                                      name: currentSpot.name,
+                                      address: currentSpot.address,
+                                      latitude: currentSpot.lat,
+                                      longitude: currentSpot.lng,
+                                    ),
                                   ),
                                 ],
                               ),
@@ -567,6 +587,334 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
     );
   }
 
+  Widget _buildSpotStats(SpotModel item) {
+    final theme = Theme.of(context);
+    final stats = [
+      (Icons.phishing, '${item.catchCount}', '渔获战绩'),
+      (Icons.star_rounded, item.avgRating.toStringAsFixed(1), '钓友评分'),
+      (Icons.favorite_rounded, '${item.likesCount}', '钓友收藏'),
+    ];
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 8),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            theme.colorScheme.primary.withValues(alpha: 0.12),
+            theme.colorScheme.tertiary.withValues(alpha: 0.09),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: theme.colorScheme.primary.withValues(alpha: 0.12),
+        ),
+      ),
+      child: Row(
+        children: stats.asMap().entries.map((entry) {
+          final index = entry.key;
+          final stat = entry.value;
+          return Expanded(
+            child: TweenAnimationBuilder<double>(
+              tween: Tween(begin: 0, end: 1),
+              duration: Duration(milliseconds: 420 + index * 100),
+              curve: Curves.easeOutBack,
+              builder: (context, value, child) => Opacity(
+                opacity: value.clamp(0, 1),
+                child: Transform.translate(
+                  offset: Offset(0, 8 * (1 - value)),
+                  child: child,
+                ),
+              ),
+              child: Column(
+                children: [
+                  Icon(stat.$1, color: theme.colorScheme.primary, size: 21),
+                  const SizedBox(height: 5),
+                  Text(
+                    stat.$2,
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  Text(stat.$3, style: theme.textTheme.bodySmall),
+                ],
+              ),
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  }
+
+  Widget _buildSpotCatchHistory(SpotModel item) {
+    return FutureBuilder<ApiResponse<dynamic>>(
+      future: _catchesFuture,
+      builder: (context, snapshot) {
+        Widget content;
+        if (snapshot.connectionState != ConnectionState.done) {
+          content = const Padding(
+            padding: EdgeInsets.all(28),
+            child: Center(child: CircularProgressIndicator()),
+          );
+        } else if (snapshot.hasError ||
+            !snapshot.hasData ||
+            !snapshot.data!.success ||
+            snapshot.data!.data is! List) {
+          content = Column(
+            children: [
+              const Text('暂时无法加载钓友战绩'),
+              TextButton.icon(
+                onPressed: () =>
+                    setState(() => _catchesFuture = _loadSpotCatches()),
+                icon: const Icon(Icons.refresh),
+                label: const Text('重新加载'),
+              ),
+            ],
+          );
+        } else {
+          final records = (snapshot.data!.data as List)
+              .map(
+                (record) => CatchModel.fromJson(
+                  Map<String, dynamic>.from(record as Map),
+                ),
+              )
+              .toList();
+          content = records.isEmpty
+              ? Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 22),
+                  child: Column(
+                    children: [
+                      Icon(
+                        Icons.sailing_outlined,
+                        size: 34,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                      const SizedBox(height: 8),
+                      const Text('还没有钓友在这里发布渔获'),
+                      const SizedBox(height: 4),
+                      Text(
+                        '成为第一位留下战绩的人吧',
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                    ],
+                  ),
+                )
+              : Column(
+                  children: records.take(8).toList().asMap().entries.map((
+                    entry,
+                  ) {
+                    final index = entry.key;
+                    final record = entry.value;
+                    return TweenAnimationBuilder<double>(
+                      key: ValueKey(record.id),
+                      tween: Tween(begin: 0, end: 1),
+                      duration: Duration(milliseconds: 320 + index * 55),
+                      curve: Curves.easeOutCubic,
+                      builder: (context, value, child) => Opacity(
+                        opacity: value,
+                        child: Transform.translate(
+                          offset: Offset(0, 12 * (1 - value)),
+                          child: child,
+                        ),
+                      ),
+                      child: Card(
+                        margin: const EdgeInsets.only(top: 8),
+                        clipBehavior: Clip.antiAlias,
+                        child: InkWell(
+                          onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute<void>(
+                              builder: (_) =>
+                                  CatchDetailScreen(catchRecord: record),
+                            ),
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.all(12),
+                            child: Row(
+                              children: [
+                                ClipRRect(
+                                  borderRadius: BorderRadius.circular(14),
+                                  child: SizedBox(
+                                    width: 68,
+                                    height: 68,
+                                    child:
+                                        record.photoUrl == null ||
+                                            record.photoUrl!.isEmpty
+                                        ? Container(
+                                            color: AppColors.primary.withValues(
+                                              alpha: 0.1,
+                                            ),
+                                            child: const Icon(
+                                              Icons.phishing,
+                                              color: AppColors.primary,
+                                              size: 30,
+                                            ),
+                                          )
+                                        : Image.network(
+                                            record.photoUrl!,
+                                            fit: BoxFit.cover,
+                                            errorBuilder: (_, _, _) =>
+                                                Container(
+                                                  color: AppColors.primary
+                                                      .withValues(alpha: 0.1),
+                                                  child: const Icon(
+                                                    Icons.phishing,
+                                                    color: AppColors.primary,
+                                                  ),
+                                                ),
+                                          ),
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Row(
+                                        children: [
+                                          Expanded(
+                                            child: Text(
+                                              '${record.fishType} · ${record.weightKg.toStringAsFixed(2)} kg',
+                                              style: const TextStyle(
+                                                fontWeight: FontWeight.w800,
+                                                fontSize: 15,
+                                              ),
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                          ),
+                                          const Icon(
+                                            Icons.chevron_right,
+                                            size: 18,
+                                            color: AppColors.textMuted,
+                                          ),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 5),
+                                      Row(
+                                        children: [
+                                          CircleAvatar(
+                                            radius: 10,
+                                            backgroundColor: AppColors.primary
+                                                .withValues(alpha: 0.12),
+                                            backgroundImage:
+                                                record.userAvatar.isNotEmpty
+                                                ? NetworkImage(
+                                                    record.userAvatar,
+                                                  )
+                                                : null,
+                                            child: record.userAvatar.isEmpty
+                                                ? const Icon(
+                                                    Icons.person,
+                                                    size: 13,
+                                                    color: AppColors.primary,
+                                                  )
+                                                : null,
+                                          ),
+                                          const SizedBox(width: 6),
+                                          Expanded(
+                                            child: Text(
+                                              record.userNickname,
+                                              style: Theme.of(context)
+                                                  .textTheme
+                                                  .bodySmall,
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                          ),
+                                          Text(
+                                            _formatCatchDate(record.createdAt),
+                                            style: Theme.of(context)
+                                                .textTheme
+                                                .bodySmall,
+                                          ),
+                                        ],
+                                      ),
+                                      if (record.notes.isNotEmpty) ...[
+                                        const SizedBox(height: 5),
+                                        Text(
+                                          record.notes,
+                                          style: Theme.of(context)
+                                              .textTheme
+                                              .bodySmall,
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ],
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                );
+        }
+
+        return Card(
+          clipBehavior: Clip.antiAlias,
+          child: Padding(
+            padding: const EdgeInsets.all(14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      width: 38,
+                      height: 38,
+                      decoration: BoxDecoration(
+                        color: AppColors.goldenFish.withValues(alpha: 0.14),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(
+                        Icons.emoji_events_outlined,
+                        color: AppColors.goldenFish,
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    const Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            '钓友实战战绩',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
+                          ),
+                          SizedBox(height: 2),
+                          Text('看看大家在这里钓到了什么'),
+                        ],
+                      ),
+                    ),
+                    _CatchCountBadge(count: item.catchCount),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 280),
+                  child: content,
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  String _formatCatchDate(String? value) {
+    if (value == null || value.isEmpty) return '最近';
+    final parsed = DateTime.tryParse(value);
+    if (parsed == null) return value;
+    final local = parsed.toLocal();
+    return '${local.month.toString().padLeft(2, '0')}-${local.day.toString().padLeft(2, '0')}';
+  }
+
   Widget _buildReviewsSection() {
     return FutureBuilder<ApiResponse<dynamic>>(
       future: _reviewsFuture,
@@ -584,7 +932,6 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
         final average = (data['avgRating'] as num?)?.toDouble() ?? 0;
         final total = data['totalCount'] as int? ?? reviews.length;
         return Card(
-          color: Colors.white,
           child: Padding(
             padding: const EdgeInsets.all(14),
             child: Column(
@@ -646,6 +993,31 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _CatchCountBadge extends StatelessWidget {
+  const _CatchCountBadge({required this.count});
+
+  final int count;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: AppColors.goldenFish.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Text(
+        '$count 条',
+        style: const TextStyle(
+          color: AppColors.goldenFish,
+          fontWeight: FontWeight.w800,
+          fontSize: 12,
+        ),
       ),
     );
   }

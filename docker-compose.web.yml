@@ -1,0 +1,27 @@
+services:
+  web:
+    container_name: fisherman_web
+    build:
+      context: ./fisherman_app
+      dockerfile: Dockerfile.web
+    ports:
+      - "8081:80"
+    networks:
+      - fisherman
+    healthcheck:
+      test:
+        - CMD
+        - wget
+        - -q
+        - --spider
+        - http://127.0.0.1/
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+
+networks:
+  fisherman:
+    external: true
+    name: fisherman_default
