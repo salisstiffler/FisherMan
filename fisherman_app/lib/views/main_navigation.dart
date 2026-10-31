@@ -5,7 +5,6 @@ import 'feed/feed_screen.dart';
 import 'notifications/notifications_screen.dart';
 import 'publish/publish_catch_screen.dart';
 import 'profile/profile_screen.dart';
-import 'settings/settings_screen.dart';
 import '../core/network/api_client.dart';
 import '../core/network/api_endpoints.dart';
 
@@ -50,7 +49,6 @@ class _MainNavigationState extends State<MainNavigation> {
             onRead: () => setState(() => _unreadCount = 0),
           ),
           const ProfileScreen(),
-          const SettingsScreen(),
         ],
       ),
       bottomNavigationBar: Container(
@@ -152,11 +150,6 @@ class _MainNavigationState extends State<MainNavigation> {
               icon: const Icon(Icons.person_outline),
               selectedIcon: const Icon(Icons.person),
               label: '我的钓界',
-            ),
-            NavigationDestination(
-              icon: const Icon(Icons.settings_outlined),
-              selectedIcon: const Icon(Icons.settings),
-              label: '设置',
             ),
           ],
         ),

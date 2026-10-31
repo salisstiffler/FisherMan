@@ -14,6 +14,7 @@ import '../map/spot_detail_screen.dart';
 import 'follow_list_screen.dart';
 import 'edit_profile_screen.dart';
 import 'my_stats_chart.dart';
+import '../settings/settings_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -646,6 +647,22 @@ class _ProfileScreenState extends State<ProfileScreen>
                       ),
                       const SizedBox(height: 12),
                     ],
+
+                    Card(
+                      child: ExpansionTile(
+                        leading: Icon(
+                          Icons.settings_outlined,
+                          color: context.fishermanColors.primary,
+                        ),
+                        title: const Text(
+                          '应用设置',
+                          style: TextStyle(fontWeight: FontWeight.w600),
+                        ),
+                        subtitle: const Text('主题、颜色与客户端下载'),
+                        children: const [SettingsContent()],
+                      ),
+                    ),
+                    const SizedBox(height: 12),
 
                     // Tab bar for Catches vs Favorites
                     Container(

@@ -17,6 +17,18 @@ const _appBuildNumber = String.fromEnvironment(
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
 
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('设置')),
+      body: ListView(children: const [SettingsContent()]),
+    );
+  }
+}
+
+class SettingsContent extends StatelessWidget {
+  const SettingsContent({super.key});
+
   void _showError(BuildContext context, Object error) {
     if (!context.mounted) return;
     ScaffoldMessenger.of(context)
@@ -45,10 +57,10 @@ class SettingsScreen extends StatelessWidget {
         (appearance.themeMode == ThemeMode.system &&
             MediaQuery.platformBrightnessOf(context) == Brightness.dark);
 
-    return Scaffold(
-      appBar: AppBar(title: const Text('设置')),
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 28),
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 28),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           _SectionCard(
             title: '外观',
