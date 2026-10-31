@@ -40,21 +40,50 @@ const storage = multer.diskStorage({
 const upload = multer({
   storage,
   limits: { fileSize: 15 * 1024 * 1024 }, // 15MB
+  fileFilter: (req, file, cb) => {
+    const allowedTypes = /jpeg|jpg|png|webp|gif/;
+    const ext = path.extname(file.originalname).toLowerCase();
+    const mime = file.mimetype.toLowerCase();
+    if (allowedTypes.test(ext) && (mime.startsWith('image/') || mime === 'application/octet-stream')) {
+      return cb(null, true);
+    }
+    cb(new Error('仅支持上传图片格式文件 (jpg, png, webp, gif)'));
+  },
 });
+
+// Simple sliding-window rate limiter for sensitive endpoints
+const rateLimitMap = new Map();
+function rateLimiter(windowMs, maxRequests, message = '操作过于频繁，请稍后再试') {
+  return (req, res, next) => {
+    const ip = req.ip || req.socket.remoteAddress || '127.0.0.1';
+    const key = `${req.path}_${ip}`;
+    const now = Date.now();
+    const timestamps = rateLimitMap.get(key) || [];
+    const validTimestamps = timestamps.filter(t => now - t < windowMs);
+
+    if (validTimestamps.length >= maxRequests) {
+      return res.status(429).json({ code: 429, message });
+    }
+
+    validTimestamps.push(now);
+    rateLimitMap.set(key, validTimestamps);
+    next();
+  };
+}
 
 // Health check
 app.get('/health', (req, res) => {
   res.json({
     status: 'ok',
     app: 'FisherMan Backend API (钓鱼佬)',
-    version: '1.0.0',
+    version: '1.1.0',
     timestamp: new Date().toISOString(),
   });
 });
 
 // Auth routes
-app.post('/api/auth/register', authCtrl.register);
-app.post('/api/auth/login', authCtrl.login);
+app.post('/api/auth/register', rateLimiter(60000, 3, '注册过于频繁，请稍后再试'), authCtrl.register);
+app.post('/api/auth/login', rateLimiter(60000, 5, '登录尝试过于频繁，请1分钟后再试'), authCtrl.login);
 app.post('/api/auth/refresh', authCtrl.refreshToken);
 app.get('/api/auth/me', authenticate, authCtrl.getMe);
 app.put('/api/auth/profile', authenticate, authCtrl.updateProfile);
@@ -83,11 +112,11 @@ app.get('/api/my/favorites', authenticate, spotsCtrl.getMyFavorites);
 // Catches routes
 app.get('/api/catches', optionalAuth, catchesCtrl.listCatches);
 app.get('/api/catches/:id', optionalAuth, catchesCtrl.getCatchDetail);
-app.post('/api/catches', authenticate, catchesCtrl.createCatch);
+app.post('/api/catches', authenticate, rateLimiter(60000, 10, '发布战报过于频繁，请稍后再试'), catchesCtrl.createCatch);
 app.put('/api/catches/:id', authenticate, catchesCtrl.updateCatch);
 app.delete('/api/catches/:id', authenticate, catchesCtrl.deleteCatch);
 app.post('/api/catches/:id/like', authenticate, catchesCtrl.toggleLike);
-app.post('/api/catches/:id/comments', authenticate, catchesCtrl.addComment);
+app.post('/api/catches/:id/comments', authenticate, rateLimiter(60000, 20, '评论过于频繁，请稍后再试'), catchesCtrl.addComment);
 app.delete('/api/catches/:id/comments/:commentId', authenticate, catchesCtrl.deleteComment);
 
 // Weather & Fishing Index

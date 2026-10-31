@@ -134,6 +134,16 @@ function initSchema() {
       FOREIGN KEY (spot_id) REFERENCES spots(id) ON DELETE CASCADE,
       FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
     );
+
+    -- Performance Indexes for 1.1 release
+    CREATE INDEX IF NOT EXISTS idx_catches_user_created ON catches(user_id, created_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_catches_spot_created ON catches(spot_id, created_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_spots_coords ON spots(lat, lng);
+    CREATE INDEX IF NOT EXISTS idx_spots_types ON spots(water_type, charge_type);
+    CREATE INDEX IF NOT EXISTS idx_comments_catch ON comments(catch_id, created_at ASC);
+    CREATE INDEX IF NOT EXISTS idx_notifications_user_read ON notifications(user_id, is_read, created_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_follows_pair ON follows(follower_id, following_id);
+    CREATE INDEX IF NOT EXISTS idx_spot_reviews_spot ON spot_reviews(spot_id, created_at DESC);
   `);
 
   // Add parent_id to comments if not exists

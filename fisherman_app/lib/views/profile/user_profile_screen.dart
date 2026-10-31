@@ -27,7 +27,7 @@ class _UserProfileScreenState extends State<UserProfileScreen>
   List<CatchModel> _catches = [];
   List<SpotModel> _spots = [];
   bool _isLoading = true;
-  bool _isFollowing = false;
+  bool _isFollowing = false; // State for follow status
   String? _error;
 
   @override
@@ -44,6 +44,122 @@ class _UserProfileScreenState extends State<UserProfileScreen>
   }
 
   Future<void> _loadProfile() async {
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+
+    try {
+      // 1. Load basic profile and social stats
+      final userResponse = await _api.get(ApiEndpoints.userProfile(widget.userId));
+      if (!userResponse.success || userResponse.data is! Map) {
+        setState(() {
+          _error = userResponse.message;
+          _isLoading = false;
+        });
+        return;
+      }
+      final user = UserModel.fromJson(
+        Map<String, dynamic>.from(userResponse.data as Map),
+      );
+      
+      // 2. Fetch other content in parallel
+      final responses = await Future.wait([
+        _api.get(ApiEndpoints.catches, queryParams: {'userId': widget.userId}),
+        _api.get(ApiEndpoints.spots, queryParams: {'creatorId': widget.userId}),
+      ]);
+
+      if (!mounted) return;
+      
+      // 3. Update state with fetched data
+      setState(() {
+        _user = user;
+        _isFollowing = user.isFollowing;
+        _catches = responses[0].success && responses[0].data is List
+            ? (responses[0].data as List)
+                  .map(
+                    (item) => CatchModel.fromJson(
+                      Map<String, dynamic>.from(item as Map),
+                    ),
+                  )
+                  .toList()
+            : [];
+        _spots = responses[1].success && responses[1].data is List
+            ? (responses[1].data as List)
+                  .map(
+                    (item) => SpotModel.fromJson(
+                      Map<String, dynamic>.from(item as Map),
+                    ),
+                  )
+                  .toList()
+            : [];
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _error = '加载失败: ${e.toString()}';
+        _isLoading = false;
+      });
+    }
+  }
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+
+    try {
+      // 1. Load basic profile and social stats
+      final userResponse = await _api.get(ApiEndpoints.userProfile(widget.userId));
+      if (!userResponse.success || userResponse.data is! Map) {
+        setState(() {
+          _error = userResponse.message;
+          _isLoading = false;
+        });
+        return;
+      }
+      final user = UserModel.fromJson(
+        Map<String, dynamic>.from(userResponse.data as Map),
+      );
+      
+      // 2. Fetch other content in parallel
+      final responses = await Future.wait([
+        _api.get(ApiEndpoints.catches, queryParams: {'userId': widget.userId}),
+        _api.get(ApiEndpoints.spots, queryParams: {'creatorId': widget.userId}),
+      ]);
+
+      if (!mounted) return;
+      
+      // 3. Update state with fetched data
+      setState(() {
+        _user = user;
+        _isFollowing = user.isFollowing;
+        _catches = responses[0].success && responses[0].data is List
+            ? (responses[0].data as List)
+                  .map(
+                    (item) => CatchModel.fromJson(
+                      Map<String, dynamic>.from(item as Map),
+                    ),
+                  )
+                  .toList()
+            : [];
+        _spots = responses[1].success && responses[1].data is List
+            ? (responses[1].data as List)
+                  .map(
+                    (item) => SpotModel.fromJson(
+                      Map<String, dynamic>.from(item as Map),
+                    ),
+                  )
+                  .toList()
+            : [];
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _error = '加载失败: ${e.toString()}';
+        _isLoading = false;
+      });
+    }
+  }
     setState(() {
       _isLoading = true;
       _error = null;
@@ -131,6 +247,56 @@ class _UserProfileScreenState extends State<UserProfileScreen>
   }
 
   Future<void> _toggleFollow() async {
+    // If the user is the profile owner, prevent action
+    if (widget.userId == _user!.id) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('无法关注自己')));
+      return;
+    }
+    
+    // Use the dedicated API endpoint for follow/unfollow
+    final response = await _api.post(ApiEndpoints.toggleFollow(widget.userId));
+    
+    if (!mounted) return;
+    
+    if (!response.success || response.data is! Map) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(response.message ?? '操作失败')));
+      return;
+    }
+    
+    final isFollowing = response.data['isFollowing'] == true;
+    
+    // Update local state and stats based on the outcome
+    setState(() {
+      _isFollowing = isFollowing;
+      final oldStats = _user!.stats;
+      
+      // Calculate delta for stats update
+      int newFollowersCount = oldStats.followersCount + (isFollowing ? 1 : -1);
+      int newFollowingCount = oldStats.followingCount + (isFollowing ? 1 : -1);
+
+      _user = UserModel(
+        id: _user!.id,
+        username: _user!.username,
+        nickname: _user!.nickname,
+        avatar: _user!.avatar,
+        bio: _user!.bio,
+        fishingYears: _user!.fishingYears,
+        targetFish: _user!.targetFish,
+        isFollowing: isFollowing,
+        stats: UserStats(
+          spotsCreated: oldStats.spotsCreated,
+          catchesCount: oldStats.catchesCount,
+          totalWeightKg: oldStats.totalWeightKg,
+          maxWeightKg: oldStats.maxWeightKg,
+          favoritesCount: oldStats.favoritesCount,
+          followersCount: newFollowersCount.clamp(0, 9999),
+          followingCount: newFollowingCount.clamp(0, 9999),
+          badges: oldStats.badges,
+        ),
+      );
+    });
+  }
     final response = await _api.post(ApiEndpoints.toggleFollow(widget.userId));
     if (!mounted) return;
     if (!response.success || response.data is! Map) {

@@ -1,6 +1,6 @@
 {
   "name": "fisherman-server",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Backend API service for FisherMan (钓鱼佬) App",
   "main": "src/server.js",
   "scripts": {
