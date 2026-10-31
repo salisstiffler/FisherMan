@@ -35,7 +35,7 @@ class FisherManApp extends StatelessWidget {
         debugShowCheckedModeBanner: false,
         theme: AppTheme.lightTheme,
         darkTheme: AppTheme.darkTheme,
-        themeMode: ThemeMode.light,
+        themeMode: ThemeMode.system,
         home: Consumer<AuthProvider>(
           builder: (context, auth, _) {
             if (auth.isLoading && auth.currentUser == null) {

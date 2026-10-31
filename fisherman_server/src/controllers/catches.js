@@ -172,6 +172,20 @@ exports.createCatch = (req, res) => {
     return res.status(400).json({ code: 400, message: '鱼种与重量不能为空' });
   }
 
+  const parsedWeight = parseFloat(weightKg);
+  const parsedLength = parseFloat(lengthCm || 0);
+  const parsedDepth = parseFloat(depthM || 2.0);
+
+  if (isNaN(parsedWeight) || parsedWeight <= 0 || parsedWeight > 500) {
+    return res.status(400).json({ code: 400, message: '渔获重量必须大于 0 且不超过 500kg' });
+  }
+  if (isNaN(parsedLength) || parsedLength < 0 || parsedLength > 500) {
+    return res.status(400).json({ code: 400, message: '体长必须在 0 ~ 500cm 之间' });
+  }
+  if (isNaN(parsedDepth) || parsedDepth < 0 || parsedDepth > 200) {
+    return res.status(400).json({ code: 400, message: '水深必须在 0 ~ 200m 之间' });
+  }
+
   // If spotId provided but no spotName, look it up
   let finalSpotName = spotName;
   if (spotId && !finalSpotName) {

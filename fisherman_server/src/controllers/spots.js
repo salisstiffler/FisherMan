@@ -204,6 +204,18 @@ exports.createSpot = (req, res) => {
     return res.status(400).json({ code: 400, message: '钓点名称和经纬度坐标不能为空' });
   }
 
+  const parsedLat = parseFloat(lat);
+  const parsedLng = parseFloat(lng);
+  if (isNaN(parsedLat) || parsedLat < -90 || parsedLat > 90) {
+    return res.status(400).json({ code: 400, message: '纬度必须在 -90 ~ 90 之间' });
+  }
+  if (isNaN(parsedLng) || parsedLng < -180 || parsedLng > 180) {
+    return res.status(400).json({ code: 400, message: '经度必须在 -180 ~ 180 之间' });
+  }
+  if (name.trim().length === 0 || name.trim().length > 50) {
+    return res.status(400).json({ code: 400, message: '钓点名称长度需在 1 ~ 50 字之间' });
+  }
+
   const result = db.prepare(`
     INSERT INTO spots (
       name, description, lat, lng, water_type, charge_type, fee_desc,
