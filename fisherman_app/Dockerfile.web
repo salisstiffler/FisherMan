@@ -3,4 +3,9 @@ FROM nginx:alpine
 COPY docker/nginx.web.conf /etc/nginx/conf.d/default.conf
 COPY build/web /usr/share/nginx/html
 
+RUN build_number="$(sed -n 's/.*"build_number":"\([^"]*\)".*/\1/p' /usr/share/nginx/html/version.json)" \
+    && test -n "$build_number" \
+    && sed -i "s#src=\"flutter_bootstrap.js\"#src=\"flutter_bootstrap.js?v=${build_number}\"#" /usr/share/nginx/html/index.html \
+    && sed -i "s#\"mainJsPath\":\"main.dart.js\"#\"mainJsPath\":\"main.dart.js?v=${build_number}\"#" /usr/share/nginx/html/flutter_bootstrap.js
+
 EXPOSE 80
