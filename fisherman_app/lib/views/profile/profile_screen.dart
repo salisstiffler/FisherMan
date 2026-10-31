@@ -83,17 +83,17 @@ class _ProfileScreenState extends State<ProfileScreen>
             if (badge.target > 0) ...[
               Text(
                 '${badge.unlocked ? '已解锁' : '未解锁'} · 进度 ${badge.current} / ${badge.target}',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 12,
-                  color: AppColors.textSecondary,
+                  color: context.fishermanColors.onSurfaceVariant,
                 ),
               ),
               const SizedBox(height: 6),
               LinearProgressIndicator(
                 value: (badge.current / badge.target).clamp(0.0, 1.0),
-                backgroundColor: AppColors.lightBorder,
-                valueColor: const AlwaysStoppedAnimation<Color>(
-                  AppColors.primary,
+                backgroundColor: context.fishermanColors.outlineVariant,
+                valueColor: AlwaysStoppedAnimation<Color>(
+                  context.fishermanColors.primary,
                 ),
               ),
             ],
@@ -166,13 +166,13 @@ class _ProfileScreenState extends State<ProfileScreen>
               onTap: () => Navigator.pop(context, 'edit'),
             ),
             ListTile(
-              leading: const Icon(
+              leading: Icon(
                 Icons.delete_outline,
-                color: AppColors.danger,
+                color: context.fishermanColors.error,
               ),
-              title: const Text(
+              title: Text(
                 '删除战报',
-                style: TextStyle(color: AppColors.danger),
+                style: TextStyle(color: context.fishermanColors.error),
               ),
               onTap: () => Navigator.pop(context, 'delete'),
             ),
@@ -228,7 +228,10 @@ class _ProfileScreenState extends State<ProfileScreen>
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('删除', style: TextStyle(color: AppColors.danger)),
+            child: Text(
+              '删除',
+              style: TextStyle(color: context.fishermanColors.error),
+            ),
           ),
         ],
       ),
@@ -255,13 +258,13 @@ class _ProfileScreenState extends State<ProfileScreen>
               onTap: () => Navigator.pop(context, 'edit'),
             ),
             ListTile(
-              leading: const Icon(
+              leading: Icon(
                 Icons.delete_outline,
-                color: AppColors.danger,
+                color: context.fishermanColors.error,
               ),
-              title: const Text(
+              title: Text(
                 '删除钓点',
-                style: TextStyle(color: AppColors.danger),
+                style: TextStyle(color: context.fishermanColors.error),
               ),
               onTap: () => Navigator.pop(context, 'delete'),
             ),
@@ -315,7 +318,10 @@ class _ProfileScreenState extends State<ProfileScreen>
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('删除', style: TextStyle(color: AppColors.danger)),
+            child: Text(
+              '删除',
+              style: TextStyle(color: context.fishermanColors.error),
+            ),
           ),
         ],
       ),
@@ -377,15 +383,24 @@ class _ProfileScreenState extends State<ProfileScreen>
                     Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [AppColors.primaryDark, AppColors.primary],
+                        gradient: LinearGradient(
+                          colors: [
+                            context.fishermanColors.primary,
+                            Color.lerp(
+                              context.fishermanColors.primary,
+                              Colors.black,
+                              0.16,
+                            )!,
+                          ],
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
                         ),
                         borderRadius: BorderRadius.circular(20),
                         boxShadow: [
                           BoxShadow(
-                            color: AppColors.primaryDark.withValues(alpha: 0.3),
+                            color: context.fishermanColors.primary.withValues(
+                              alpha: 0.3,
+                            ),
                             blurRadius: 12,
                             offset: const Offset(0, 4),
                           ),
@@ -397,7 +412,8 @@ class _ProfileScreenState extends State<ProfileScreen>
                             children: [
                               CircleAvatar(
                                 radius: 32,
-                                backgroundColor: Colors.white,
+                                backgroundColor:
+                                    context.fishermanColors.surface,
                                 child: CircleAvatar(
                                   radius: 30,
                                   backgroundImage:
@@ -405,10 +421,11 @@ class _ProfileScreenState extends State<ProfileScreen>
                                       ? NetworkImage(user!.avatar)
                                       : null,
                                   child: (user?.avatar.isEmpty ?? true)
-                                      ? const Icon(
+                                      ? Icon(
                                           Icons.phishing,
                                           size: 32,
-                                          color: AppColors.primary,
+                                          color:
+                                              context.fishermanColors.primary,
                                         )
                                       : null,
                                 ),
@@ -422,8 +439,10 @@ class _ProfileScreenState extends State<ProfileScreen>
                                       children: [
                                         Text(
                                           user?.nickname ?? '钓鱼佬',
-                                          style: const TextStyle(
-                                            color: Colors.white,
+                                          style: TextStyle(
+                                            color: context
+                                                .fishermanColors
+                                                .onPrimary,
                                             fontWeight: FontWeight.bold,
                                             fontSize: 18,
                                           ),
@@ -435,15 +454,19 @@ class _ProfileScreenState extends State<ProfileScreen>
                                             vertical: 2,
                                           ),
                                           decoration: BoxDecoration(
-                                            color: AppColors.goldenFish,
+                                            color: context
+                                                .fishermanColors
+                                                .tertiaryContainer,
                                             borderRadius: BorderRadius.circular(
                                               10,
                                             ),
                                           ),
                                           child: Text(
                                             '${user?.fishingYears ?? 1}年钓龄',
-                                            style: const TextStyle(
-                                              color: Colors.black87,
+                                            style: TextStyle(
+                                              color: context
+                                                  .fishermanColors
+                                                  .onTertiaryContainer,
                                               fontSize: 10,
                                               fontWeight: FontWeight.bold,
                                             ),
@@ -454,16 +477,18 @@ class _ProfileScreenState extends State<ProfileScreen>
                                     const SizedBox(height: 4),
                                     Text(
                                       '主攻: ${user?.targetFish ?? '鲫鱼、鲤鱼'}',
-                                      style: const TextStyle(
-                                        color: AppColors.textLightSecondary,
+                                      style: TextStyle(
+                                        color: context.fishermanColors.onPrimary
+                                            .withValues(alpha: 0.8),
                                         fontSize: 12,
                                       ),
                                     ),
                                     const SizedBox(height: 4),
                                     Text(
                                       user?.bio ?? '永不空军，钓获放流！',
-                                      style: const TextStyle(
-                                        color: Colors.white70,
+                                      style: TextStyle(
+                                        color: context.fishermanColors.onPrimary
+                                            .withValues(alpha: 0.8),
                                         fontSize: 12,
                                       ),
                                       maxLines: 1,
@@ -473,9 +498,10 @@ class _ProfileScreenState extends State<ProfileScreen>
                                 ),
                               ),
                               IconButton(
-                                icon: const Icon(
+                                icon: Icon(
                                   Icons.edit,
-                                  color: Colors.white70,
+                                  color: context.fishermanColors.onPrimary
+                                      .withValues(alpha: 0.8),
                                   size: 20,
                                 ),
                                 onPressed: () {
@@ -629,9 +655,10 @@ class _ProfileScreenState extends State<ProfileScreen>
                       ),
                       child: TabBar(
                         controller: _tabController,
-                        indicatorColor: AppColors.primary,
-                        labelColor: AppColors.primary,
-                        unselectedLabelColor: AppColors.textSecondary,
+                        indicatorColor: context.fishermanColors.primary,
+                        labelColor: context.fishermanColors.primary,
+                        unselectedLabelColor:
+                            context.fishermanColors.onSurfaceVariant,
                         tabs: [
                           Tab(text: '我的战报 (${myCatches.length})'),
                           Tab(text: '创建钓点 (${mySpots.length})'),
@@ -650,10 +677,12 @@ class _ProfileScreenState extends State<ProfileScreen>
           children: [
             // Catches List
             myCatches.isEmpty
-                ? const Center(
+                ? Center(
                     child: Text(
                       '暂无战报，快去发布今日首条大鱼！',
-                      style: TextStyle(color: AppColors.textMuted),
+                      style: TextStyle(
+                        color: context.fishermanColors.onSurfaceVariant,
+                      ),
                     ),
                   )
                 : ListView.builder(
@@ -700,10 +729,12 @@ class _ProfileScreenState extends State<ProfileScreen>
                   ),
 
             mySpots.isEmpty
-                ? const Center(
+                ? Center(
                     child: Text(
                       '暂无创建的钓点',
-                      style: TextStyle(color: AppColors.textMuted),
+                      style: TextStyle(
+                        color: context.fishermanColors.onSurfaceVariant,
+                      ),
                     ),
                   )
                 : ListView.builder(
@@ -717,9 +748,9 @@ class _ProfileScreenState extends State<ProfileScreen>
                       return Card(
                         margin: const EdgeInsets.only(bottom: 10),
                         child: ListTile(
-                          leading: const Icon(
+                          leading: Icon(
                             Icons.place,
-                            color: AppColors.primary,
+                            color: context.fishermanColors.primary,
                           ),
                           title: Text(
                             spot.name,
@@ -741,10 +772,12 @@ class _ProfileScreenState extends State<ProfileScreen>
 
             // Favorites List
             favoriteSpots.isEmpty
-                ? const Center(
+                ? Center(
                     child: Text(
                       '暂无收藏钓点，在地图上点击红心收藏心仪水域',
-                      style: TextStyle(color: AppColors.textMuted),
+                      style: TextStyle(
+                        color: context.fishermanColors.onSurfaceVariant,
+                      ),
                     ),
                   )
                 : ListView.builder(
@@ -806,7 +839,7 @@ class _ProfileScreenState extends State<ProfileScreen>
         ),
         child: Column(
           children: [
-            Icon(icon, size: 18, color: AppColors.primary),
+            Icon(icon, size: 18, color: context.fishermanColors.primary),
             const SizedBox(height: 4),
             Text(
               value,
@@ -815,8 +848,8 @@ class _ProfileScreenState extends State<ProfileScreen>
             const SizedBox(height: 2),
             Text(
               title,
-              style: const TextStyle(
-                color: AppColors.textSecondary,
+              style: TextStyle(
+                color: context.fishermanColors.onSurfaceVariant,
                 fontSize: 10,
               ),
             ),

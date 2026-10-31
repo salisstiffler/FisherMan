@@ -65,12 +65,15 @@ class _FollowListScreenState extends State<FollowListScreen> {
               final avatar = user['avatar'] as String? ?? '';
               return ListTile(
                 leading: CircleAvatar(
-                  backgroundColor: AppColors.primaryLight,
+                  backgroundColor: context.fishermanColors.primary,
                   backgroundImage: avatar.isNotEmpty
                       ? NetworkImage(avatar)
                       : null,
                   child: avatar.isEmpty
-                      ? const Icon(Icons.person, color: Colors.white)
+                      ? Icon(
+                          Icons.person,
+                          color: context.fishermanColors.onPrimary,
+                        )
                       : null,
                 ),
                 title: Text(nickname),

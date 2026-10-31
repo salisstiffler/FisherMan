@@ -173,9 +173,27 @@ class _SpotMapScreenState extends State<SpotMapScreen> {
       body: Stack(
         children: [
           // 1. Map View or List View
-          _isListView
-              ? _buildListView(spots)
-              : _buildMapView(spots, spotsProvider),
+          AnimatedSwitcher(
+            duration: const Duration(milliseconds: 420),
+            switchInCurve: Curves.easeOutCubic,
+            switchOutCurve: Curves.easeInCubic,
+            transitionBuilder: (child, animation) => FadeTransition(
+              opacity: animation,
+              child: ScaleTransition(
+                scale: Tween<double>(begin: 0.985, end: 1).animate(animation),
+                child: child,
+              ),
+            ),
+            child: _isListView
+                ? KeyedSubtree(
+                    key: const ValueKey('spot-list'),
+                    child: _buildListView(spots),
+                  )
+                : KeyedSubtree(
+                    key: const ValueKey('spot-map'),
+                    child: _buildMapView(spots, spotsProvider),
+                  ),
+          ),
 
           // 2. Top Header & Floating Weather Card
           SafeArea(
@@ -205,7 +223,9 @@ class _SpotMapScreenState extends State<SpotMapScreen> {
                       ),
                       boxShadow: [
                         BoxShadow(
-                          color: AppColors.primaryDark.withValues(alpha: 0.12),
+                          color: context.fishermanColors.primary.withValues(
+                            alpha: 0.12,
+                          ),
                           blurRadius: 24,
                           offset: const Offset(0, 8),
                         ),
@@ -214,7 +234,10 @@ class _SpotMapScreenState extends State<SpotMapScreen> {
                     padding: const EdgeInsets.symmetric(horizontal: 12),
                     child: Row(
                       children: [
-                        const Icon(Icons.search, color: AppColors.primary),
+                        Icon(
+                          Icons.search,
+                          color: context.fishermanColors.primary,
+                        ),
                         const SizedBox(width: 8),
                         Expanded(
                           child: TextField(
@@ -246,7 +269,7 @@ class _SpotMapScreenState extends State<SpotMapScreen> {
                             _isListView
                                 ? Icons.map_outlined
                                 : Icons.format_list_bulleted,
-                            color: AppColors.primary,
+                            color: context.fishermanColors.primary,
                           ),
                           tooltip: _isListView ? '切换地图模式' : '切换列表模式',
                           onPressed: () {
@@ -261,34 +284,46 @@ class _SpotMapScreenState extends State<SpotMapScreen> {
                   const SizedBox(height: 8),
 
                   // Water Type Filter Pills
-                  SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: Row(
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: Wrap(
+                      spacing: 6,
+                      runSpacing: -8,
                       children: AppConstants.waterTypes.map((type) {
                         final isSelected =
                             spotsProvider.selectedWaterType == type;
-                        return Padding(
-                          padding: const EdgeInsets.only(right: 8.0),
-                          child: ChoiceChip(
-                            label: Text(type),
-                            selected: isSelected,
-                            selectedColor: AppColors.primary,
-                            backgroundColor: Theme.of(context)
-                                .colorScheme
-                                .surface,
-                            labelStyle: TextStyle(
-                              color: isSelected
-                                  ? Colors.white
-                                  : Theme.of(context).colorScheme.onSurface,
-                              fontWeight: isSelected
-                                  ? FontWeight.bold
-                                  : FontWeight.normal,
-                              fontSize: 12,
-                            ),
-                            elevation: isSelected ? 3 : 0,
-                            pressElevation: 5,
-                            onSelected: (_) => spotsProvider.setWaterType(type),
+                        return ChoiceChip(
+                          label: Text(type),
+                          selected: isSelected,
+                          selectedColor: context.fishermanColors.primary,
+                          backgroundColor: Theme.of(context).colorScheme.surface
+                              .withValues(alpha: 0.94),
+                          labelStyle: TextStyle(
+                            color: isSelected
+                                ? context.fishermanColors.onPrimary
+                                : Theme.of(context).colorScheme.onSurface,
+                            fontWeight: isSelected
+                                ? FontWeight.bold
+                                : FontWeight.w500,
+                            fontSize: 12,
                           ),
+                          labelPadding: const EdgeInsets.symmetric(
+                            horizontal: 5,
+                          ),
+                          visualDensity: const VisualDensity(
+                            horizontal: -2,
+                            vertical: -3,
+                          ),
+                          materialTapTargetSize:
+                              MaterialTapTargetSize.shrinkWrap,
+                          side: BorderSide(
+                            color: isSelected
+                                ? context.fishermanColors.primary
+                                : Theme.of(context).colorScheme.outlineVariant,
+                          ),
+                          elevation: isSelected ? 2 : 0,
+                          pressElevation: 3,
+                          onSelected: (_) => spotsProvider.setWaterType(type),
                         );
                       }).toList(),
                     ),
@@ -303,12 +338,30 @@ class _SpotMapScreenState extends State<SpotMapScreen> {
                         vertical: 8,
                       ),
                       decoration: BoxDecoration(
-                        color: AppColors.darkSurface.withValues(alpha: 0.88),
-                        borderRadius: BorderRadius.circular(12),
+                        gradient: LinearGradient(
+                          colors: [
+                            context.fishermanColors.primary.withValues(
+                              alpha: 0.97,
+                            ),
+                            context.fishermanColors.primary.withValues(
+                              alpha: 0.94,
+                            ),
+                            context.fishermanColors.secondary.withValues(
+                              alpha: 0.9,
+                            ),
+                          ],
+                        ),
+                        borderRadius: BorderRadius.circular(18),
+                        border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.22),
+                        ),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.1),
-                            blurRadius: 6,
+                            color: context.fishermanColors.primary.withValues(
+                              alpha: 0.22,
+                            ),
+                            blurRadius: 18,
+                            offset: const Offset(0, 5),
                           ),
                         ],
                       ),
@@ -319,8 +372,8 @@ class _SpotMapScreenState extends State<SpotMapScreen> {
                             Expanded(
                               child: Text(
                                 weatherProvider.errorMessage!,
-                                style: const TextStyle(
-                                  color: Colors.white,
+                                style: TextStyle(
+                                  color: context.fishermanColors.onPrimary,
                                   fontSize: 12,
                                 ),
                                 maxLines: 2,
@@ -331,17 +384,18 @@ class _SpotMapScreenState extends State<SpotMapScreen> {
                             Expanded(
                               child: Row(
                                 children: [
-                                  const Icon(
+                                  Icon(
                                     Icons.speed,
-                                    color: AppColors.goldenFish,
+                                    color: context.fishermanColors.tertiary,
                                     size: 18,
                                   ),
                                   const SizedBox(width: 6),
                                   Flexible(
                                     child: Text(
                                       '气压 ${weather.pressure} · ${weather.temperature}',
-                                      style: const TextStyle(
-                                        color: Colors.white,
+                                      style: TextStyle(
+                                        color:
+                                            context.fishermanColors.onPrimary,
                                         fontSize: 13,
                                         fontWeight: FontWeight.bold,
                                       ),
@@ -358,9 +412,9 @@ class _SpotMapScreenState extends State<SpotMapScreen> {
                                 lat: _currentCenter.latitude,
                                 lng: _currentCenter.longitude,
                               ),
-                              icon: const Icon(
+                              icon: Icon(
                                 Icons.refresh,
-                                color: Colors.white,
+                                color: context.fishermanColors.onTertiary,
                               ),
                             )
                           else
@@ -370,13 +424,13 @@ class _SpotMapScreenState extends State<SpotMapScreen> {
                                 vertical: 2,
                               ),
                               decoration: BoxDecoration(
-                                color: AppColors.primary,
+                                color: context.fishermanColors.tertiary,
                                 borderRadius: BorderRadius.circular(10),
                               ),
                               child: Text(
                                 '${weather.fishingStatus} (${weather.fishingScore}分)',
-                                style: const TextStyle(
-                                  color: Colors.white,
+                                style: TextStyle(
+                                  color: context.fishermanColors.onTertiary,
                                   fontSize: 11,
                                   fontWeight: FontWeight.bold,
                                 ),
@@ -397,17 +451,17 @@ class _SpotMapScreenState extends State<SpotMapScreen> {
               bottom: spotsProvider.selectedSpot != null ? 180 : 96,
               child: FloatingActionButton.small(
                 heroTag: 'locate_btn',
-                backgroundColor: Colors.white,
-                foregroundColor: AppColors.primary,
+                backgroundColor: Theme.of(context).colorScheme.surface,
+                foregroundColor: context.fishermanColors.primary,
                 tooltip: '定位到当前地点',
                 onPressed: _isLocating ? null : () => _locateUser(),
                 child: _isLocating
-                    ? const SizedBox(
+                    ? SizedBox(
                         width: 18,
                         height: 18,
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
-                          color: AppColors.primary,
+                          color: context.fishermanColors.primary,
                         ),
                       )
                     : const Icon(Icons.my_location),
@@ -444,10 +498,10 @@ class _SpotMapScreenState extends State<SpotMapScreen> {
 
           // 5. Center Crosshair indicator when navigating map
           if (!_isListView && spotsProvider.selectedSpot == null)
-            const Center(
+            Center(
               child: Icon(
                 Icons.add_location,
-                color: AppColors.primary,
+                color: context.fishermanColors.primary,
                 size: 28,
               ),
             ),
@@ -456,8 +510,8 @@ class _SpotMapScreenState extends State<SpotMapScreen> {
       floatingActionButton: FloatingActionButton.extended(
         heroTag: 'add_spot_btn',
         onPressed: _openAddSpotSheet,
-        backgroundColor: AppColors.primary,
-        foregroundColor: Colors.white,
+        backgroundColor: context.fishermanColors.primary,
+        foregroundColor: context.fishermanColors.onPrimary,
         icon: const Icon(Icons.add_location_alt_outlined),
         label: const Text(
           '标记钓点',
@@ -496,7 +550,9 @@ class _SpotMapScreenState extends State<SpotMapScreen> {
                     child: Container(
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: AppColors.secondary.withValues(alpha: 0.25),
+                        color: context.fishermanColors.secondary.withValues(
+                          alpha: 0.25,
+                        ),
                       ),
                       child: Center(
                         child: Container(
@@ -504,7 +560,7 @@ class _SpotMapScreenState extends State<SpotMapScreen> {
                           height: 18,
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
-                            color: AppColors.secondary,
+                            color: context.fishermanColors.secondary,
                             border: Border.all(color: Colors.white, width: 3),
                             boxShadow: [
                               BoxShadow(
@@ -543,13 +599,13 @@ class _SpotMapScreenState extends State<SpotMapScreen> {
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
                         colors: isSelected
-                            ? const [
-                                AppColors.goldenLight,
-                                AppColors.goldenFish,
+                            ? [
+                                context.fishermanColors.tertiary,
+                                context.fishermanColors.tertiary,
                               ]
-                            : const [
-                                AppColors.primaryLight,
-                                AppColors.primaryDark,
+                            : [
+                                context.fishermanColors.primary,
+                                context.fishermanColors.primary,
                               ],
                       ),
                       shape: BoxShape.circle,
@@ -561,8 +617,8 @@ class _SpotMapScreenState extends State<SpotMapScreen> {
                         BoxShadow(
                           color:
                               (isSelected
-                                      ? AppColors.goldenFish
-                                      : AppColors.primary)
+                                      ? context.fishermanColors.tertiary
+                                      : context.fishermanColors.primary)
                                   .withValues(alpha: 0.4),
                           blurRadius: isSelected ? 18 : 10,
                           spreadRadius: isSelected ? 2 : 0,
@@ -570,10 +626,12 @@ class _SpotMapScreenState extends State<SpotMapScreen> {
                         ),
                       ],
                     ),
-                    child: const Center(
+                    child: Center(
                       child: Icon(
                         Icons.phishing,
-                        color: Colors.white,
+                        color: isSelected
+                            ? context.fishermanColors.onTertiary
+                            : context.fishermanColors.onPrimary,
                         size: 22,
                       ),
                     ),
@@ -592,7 +650,7 @@ class _SpotMapScreenState extends State<SpotMapScreen> {
             },
             builder: (context, markers) => Container(
               decoration: BoxDecoration(
-                color: AppColors.primary,
+                color: context.fishermanColors.primary,
                 shape: BoxShape.circle,
                 border: Border.all(color: Colors.white, width: 2),
                 boxShadow: [
@@ -605,8 +663,8 @@ class _SpotMapScreenState extends State<SpotMapScreen> {
               child: Center(
                 child: Text(
                   '${markers.length}',
-                  style: const TextStyle(
-                    color: Colors.white,
+                  style: TextStyle(
+                    color: context.fishermanColors.onPrimary,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -620,19 +678,19 @@ class _SpotMapScreenState extends State<SpotMapScreen> {
 
   Widget _buildListView(List<SpotModel> spots) {
     if (spots.isEmpty) {
-      return const Center(
+      return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(
               Icons.location_off_outlined,
               size: 54,
-              color: AppColors.textMuted,
+              color: context.fishermanColors.onSurfaceVariant,
             ),
             SizedBox(height: 12),
             Text(
               '未搜索到匹配的钓点，试着换个筛选条件吧',
-              style: TextStyle(color: AppColors.textSecondary),
+              style: TextStyle(color: context.fishermanColors.onSurfaceVariant),
             ),
           ],
         ),
@@ -644,116 +702,135 @@ class _SpotMapScreenState extends State<SpotMapScreen> {
       itemCount: spots.length,
       itemBuilder: (context, index) {
         final spot = spots[index];
-        return Card(
-          margin: const EdgeInsets.only(bottom: 12),
-          child: InkWell(
-            borderRadius: BorderRadius.circular(16),
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => SpotDetailScreen(spot: spot)),
-              );
-            },
-            child: Padding(
-              padding: const EdgeInsets.all(12.0),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(10),
-                    child: Image.network(
-                      spot.imageUrl ?? 'https://images.unsplash.com/photo-1501785888041-af3ef285b470?w=600',
-                      width: 90,
-                      height: 90,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, _, _) => Container(
+        return TweenAnimationBuilder<double>(
+          key: ValueKey(spot.id),
+          tween: Tween(begin: 0, end: 1),
+          duration: Duration(milliseconds: 350 + (index % 6) * 55),
+          curve: Curves.easeOutCubic,
+          builder: (context, progress, child) => Opacity(
+            opacity: progress,
+            child: Transform.translate(
+              offset: Offset(0, 14 * (1 - progress)),
+              child: child,
+            ),
+          ),
+          child: Card(
+            margin: const EdgeInsets.only(bottom: 12),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(16),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => SpotDetailScreen(spot: spot),
+                  ),
+                );
+              },
+              child: Padding(
+                padding: const EdgeInsets.all(12.0),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(10),
+                      child: Image.network(
+                        spot.imageUrl ?? 'https://images.unsplash.com/photo-1501785888041-af3ef285b470?w=600',
                         width: 90,
                         height: 90,
-                        color: AppColors.primaryDark,
-                        child: const Icon(Icons.water, color: Colors.white),
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, _, _) => Container(
+                          width: 90,
+                          height: 90,
+                          color: context.fishermanColors.primary,
+                          child: Icon(
+                            Icons.water,
+                            color: context.fishermanColors.onPrimary,
+                          ),
+                        ),
                       ),
                     ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          spot.name,
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 15,
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            spot.name,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 15,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        const SizedBox(height: 4),
-                        Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 6,
-                                vertical: 2,
+                          const SizedBox(height: 4),
+                          Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 6,
+                                  vertical: 2,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: context.fishermanColors.primary
+                                      .withValues(alpha: 0.1),
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                                child: Text(
+                                  spot.waterType,
+                                  style: TextStyle(
+                                    color: context.fishermanColors.primary,
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
                               ),
-                              decoration: BoxDecoration(
-                                color: AppColors.primary.withValues(alpha: 0.1),
-                                borderRadius: BorderRadius.circular(4),
+                              const SizedBox(width: 6),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 6,
+                                  vertical: 2,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: context.fishermanColors.secondary
+                                      .withValues(alpha: 0.1),
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                                child: Text(
+                                  spot.chargeType,
+                                  style: TextStyle(
+                                    color: context.fishermanColors.secondary,
+                                    fontSize: 11,
+                                  ),
+                                ),
                               ),
-                              child: Text(
-                                spot.waterType,
-                                style: const TextStyle(
-                                  color: AppColors.primary,
+                              const Spacer(),
+                              Text(
+                                '水深 ${spot.depthMeters}m',
+                                style: TextStyle(
                                   fontSize: 11,
-                                  fontWeight: FontWeight.bold,
+                                  color:
+                                      context.fishermanColors.onSurfaceVariant,
                                 ),
                               ),
-                            ),
-                            const SizedBox(width: 6),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 6,
-                                vertical: 2,
-                              ),
-                              decoration: BoxDecoration(
-                                color: AppColors.secondary.withValues(
-                                  alpha: 0.1,
-                                ),
-                                borderRadius: BorderRadius.circular(4),
-                              ),
-                              child: Text(
-                                spot.chargeType,
-                                style: const TextStyle(
-                                  color: AppColors.secondary,
-                                  fontSize: 11,
-                                ),
-                              ),
-                            ),
-                            const Spacer(),
-                            Text(
-                              '水深 ${spot.depthMeters}m',
-                              style: const TextStyle(
-                                fontSize: 11,
-                                color: AppColors.textSecondary,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 6),
-                        Text(
-                          spot.description,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            fontSize: 12,
-                            color: AppColors.textSecondary,
-                            height: 1.3,
+                            ],
                           ),
-                        ),
-                      ],
+                          const SizedBox(height: 6),
+                          Text(
+                            spot.description,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: context.fishermanColors.onSurfaceVariant,
+                              height: 1.3,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
@@ -770,7 +847,7 @@ class _SpotMapScreenState extends State<SpotMapScreen> {
     return Card(
       key: key,
       elevation: 8,
-      shadowColor: AppColors.primaryDark.withValues(alpha: 0.22),
+      shadowColor: context.fishermanColors.primary.withValues(alpha: 0.22),
       clipBehavior: Clip.antiAlias,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
       child: Container(
@@ -813,14 +890,18 @@ class _SpotMapScreenState extends State<SpotMapScreen> {
               ),
               Row(
                 children: [
-                  const Icon(Icons.place, size: 14, color: AppColors.primary),
+                  Icon(
+                    Icons.place,
+                    size: 14,
+                    color: context.fishermanColors.primary,
+                  ),
                   const SizedBox(width: 4),
                   Expanded(
                     child: Text(
                       spot.address,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 12,
-                        color: AppColors.textSecondary,
+                        color: context.fishermanColors.onSurfaceVariant,
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -828,9 +909,9 @@ class _SpotMapScreenState extends State<SpotMapScreen> {
                   ),
                   Text(
                     '${spot.catchCount} 条战绩 · ${spot.chargeType}',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 12,
-                      color: AppColors.primary,
+                      color: context.fishermanColors.primary,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -842,9 +923,9 @@ class _SpotMapScreenState extends State<SpotMapScreen> {
                   Expanded(
                     child: Text(
                       '常见鱼种：${spot.fishTypes.take(3).join(' · ')}',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 12,
-                        color: AppColors.textSecondary,
+                        color: context.fishermanColors.onSurfaceVariant,
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,

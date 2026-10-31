@@ -121,7 +121,7 @@ class _CatchDetailScreenState extends State<CatchDetailScreen> {
       builder: (ctx) => AlertDialog(
         title: Row(
           children: [
-            const Icon(Icons.navigation, color: AppColors.primary),
+            Icon(Icons.navigation, color: context.fishermanColors.primary),
             const SizedBox(width: 8),
             Text('出钓导航: ${item.spotName}'),
           ],
@@ -137,9 +137,9 @@ class _CatchDetailScreenState extends State<CatchDetailScreen> {
             const SizedBox(height: 6),
             Text(
               'GPS 坐标: ${item.spotLat.toStringAsFixed(4)}, ${item.spotLng.toStringAsFixed(4)}',
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 12,
-                color: AppColors.textSecondary,
+                color: context.fishermanColors.onSurfaceVariant,
               ),
             ),
             const SizedBox(height: 14),
@@ -150,7 +150,7 @@ class _CatchDetailScreenState extends State<CatchDetailScreen> {
             const SizedBox(height: 8),
             ListTile(
               dense: true,
-              leading: const Icon(Icons.map, color: Colors.blue),
+              leading: Icon(Icons.map, color: context.fishermanColors.primary),
               title: const Text('高德地图 (AMap)'),
               subtitle: const Text('规划最佳自驾出钓路线'),
               onTap: () {
@@ -162,7 +162,10 @@ class _CatchDetailScreenState extends State<CatchDetailScreen> {
             ),
             ListTile(
               dense: true,
-              leading: const Icon(Icons.explore, color: Colors.green),
+              leading: Icon(
+                Icons.explore,
+                color: context.fishermanColors.secondary,
+              ),
               title: const Text('腾讯地图 / 微信定位'),
               subtitle: const Text('周边水系与停车指引'),
               onTap: () {
@@ -174,7 +177,7 @@ class _CatchDetailScreenState extends State<CatchDetailScreen> {
             ),
             ListTile(
               dense: true,
-              leading: const Icon(Icons.copy, color: AppColors.primary),
+              leading: Icon(Icons.copy, color: context.fishermanColors.primary),
               title: const Text('复制精确 GPS 坐标'),
               onTap: () {
                 Navigator.pop(ctx);
@@ -240,11 +243,11 @@ class _CatchDetailScreenState extends State<CatchDetailScreen> {
                             fit: BoxFit.cover,
                             errorBuilder: (_, _, _) => Container(
                               height: 280,
-                              color: AppColors.primaryDark,
-                              child: const Icon(
+                              color: context.fishermanColors.primary,
+                              child: Icon(
                                 Icons.phishing,
                                 size: 72,
-                                color: Colors.white,
+                                color: context.fishermanColors.onPrimary,
                               ),
                             ),
                           ),
@@ -261,16 +264,16 @@ class _CatchDetailScreenState extends State<CatchDetailScreen> {
                                 color: Colors.black.withValues(alpha: 0.75),
                                 borderRadius: BorderRadius.circular(12),
                                 border: Border.all(
-                                  color: AppColors.goldenFish,
+                                  color: context.fishermanColors.tertiary,
                                   width: 1.5,
                                 ),
                               ),
                               child: Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  const Icon(
+                                  Icon(
                                     Icons.military_tech,
-                                    color: AppColors.goldenFish,
+                                    color: context.fishermanColors.tertiary,
                                     size: 24,
                                   ),
                                   const SizedBox(width: 6),
@@ -285,8 +288,10 @@ class _CatchDetailScreenState extends State<CatchDetailScreen> {
                                   if (item.lengthCm > 0)
                                     Text(
                                       ' / ${item.lengthCm}cm',
-                                      style: const TextStyle(
-                                        color: AppColors.goldenLight,
+                                      style: TextStyle(
+                                        color: context
+                                            .fishermanColors
+                                            .tertiaryContainer,
                                         fontWeight: FontWeight.bold,
                                         fontSize: 14,
                                       ),
@@ -316,11 +321,13 @@ class _CatchDetailScreenState extends State<CatchDetailScreen> {
                                 backgroundImage: item.userAvatar.isNotEmpty
                                     ? NetworkImage(item.userAvatar)
                                     : null,
-                                backgroundColor: AppColors.primary,
+                                backgroundColor:
+                                    context.fishermanColors.primary,
                                 child: item.userAvatar.isEmpty
-                                    ? const Icon(
+                                    ? Icon(
                                         Icons.person,
-                                        color: Colors.white,
+                                        color:
+                                            context.fishermanColors.onPrimary,
                                       )
                                     : null,
                               ),
@@ -349,9 +356,11 @@ class _CatchDetailScreenState extends State<CatchDetailScreen> {
                                   ),
                                   Text(
                                     '钓龄 ${item.userFishingYears} 年 • ${item.createdAt ?? '刚刚'}',
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       fontSize: 12,
-                                      color: AppColors.textSecondary,
+                                      color: context
+                                          .fishermanColors
+                                          .onSurfaceVariant,
                                     ),
                                   ),
                                 ],
@@ -364,8 +373,8 @@ class _CatchDetailScreenState extends State<CatchDetailScreen> {
                                     : Icons.thumb_up_alt_outlined,
                                 size: 16,
                                 color: item.isLiked
-                                    ? AppColors.goldenFish
-                                    : AppColors.primary,
+                                    ? context.fishermanColors.tertiary
+                                    : context.fishermanColors.primary,
                               ),
                               label: Text('${item.likesCount} 点赞'),
                               onPressed: () =>
@@ -381,9 +390,11 @@ class _CatchDetailScreenState extends State<CatchDetailScreen> {
                         child: Container(
                           padding: const EdgeInsets.all(14),
                           decoration: BoxDecoration(
-                            color: Colors.white,
+                            color: context.fishermanColors.surface,
                             borderRadius: BorderRadius.circular(14),
-                            border: Border.all(color: AppColors.lightBorder),
+                            border: Border.all(
+                              color: context.fishermanColors.outlineVariant,
+                            ),
                           ),
                           child: Column(
                             children: [
@@ -428,9 +439,11 @@ class _CatchDetailScreenState extends State<CatchDetailScreen> {
                         child: Container(
                           padding: const EdgeInsets.all(14),
                           decoration: BoxDecoration(
-                            color: Colors.white,
+                            color: context.fishermanColors.surface,
                             borderRadius: BorderRadius.circular(14),
-                            border: Border.all(color: AppColors.lightBorder),
+                            border: Border.all(
+                              color: context.fishermanColors.outlineVariant,
+                            ),
                           ),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -441,9 +454,9 @@ class _CatchDetailScreenState extends State<CatchDetailScreen> {
                                 children: [
                                   Row(
                                     children: [
-                                      const Icon(
+                                      Icon(
                                         Icons.place,
-                                        color: AppColors.primary,
+                                        color: context.fishermanColors.primary,
                                         size: 20,
                                       ),
                                       const SizedBox(width: 6),
@@ -477,9 +490,10 @@ class _CatchDetailScreenState extends State<CatchDetailScreen> {
                               const SizedBox(height: 6),
                               Text(
                                 '详细位置: ${item.spotAddress}',
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 13,
-                                  color: AppColors.textSecondary,
+                                  color:
+                                      context.fishermanColors.onSurfaceVariant,
                                 ),
                               ),
                               const SizedBox(height: 10),
@@ -509,7 +523,9 @@ class _CatchDetailScreenState extends State<CatchDetailScreen> {
                                             height: 44,
                                             child: Container(
                                               decoration: BoxDecoration(
-                                                color: AppColors.goldenFish,
+                                                color: context
+                                                    .fishermanColors
+                                                    .tertiary,
                                                 shape: BoxShape.circle,
                                                 border: Border.all(
                                                   color: Colors.white,
@@ -523,10 +539,12 @@ class _CatchDetailScreenState extends State<CatchDetailScreen> {
                                                   ),
                                                 ],
                                               ),
-                                              child: const Center(
+                                              child: Center(
                                                 child: Icon(
                                                   Icons.phishing,
-                                                  color: Colors.white,
+                                                  color: context
+                                                      .fishermanColors
+                                                      .onTertiary,
                                                   size: 22,
                                                 ),
                                               ),
@@ -545,9 +563,11 @@ class _CatchDetailScreenState extends State<CatchDetailScreen> {
                                 children: [
                                   Text(
                                     'GPS: ${item.spotLat.toStringAsFixed(4)}, ${item.spotLng.toStringAsFixed(4)}',
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       fontSize: 11,
-                                      color: AppColors.textSecondary,
+                                      color: context
+                                          .fishermanColors
+                                          .onSurfaceVariant,
                                     ),
                                   ),
                                   TextButton(
@@ -608,16 +628,18 @@ class _CatchDetailScreenState extends State<CatchDetailScreen> {
                             width: double.infinity,
                             padding: const EdgeInsets.all(14),
                             decoration: BoxDecoration(
-                              color: Colors.white,
+                              color: context.fishermanColors.surface,
                               borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: AppColors.lightBorder),
+                              border: Border.all(
+                                color: context.fishermanColors.outlineVariant,
+                              ),
                             ),
                             child: Text(
                               item.notes,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 14,
                                 height: 1.5,
-                                color: AppColors.textPrimary,
+                                color: context.fishermanColors.onSurface,
                               ),
                             ),
                           ),
@@ -642,12 +664,14 @@ class _CatchDetailScreenState extends State<CatchDetailScreen> {
                       const SizedBox(height: 8),
 
                       if (item.comments.isEmpty)
-                        const Padding(
+                        Padding(
                           padding: EdgeInsets.all(24.0),
                           child: Center(
                             child: Text(
                               '暂无评论，快来抢首条大鱼沙发！',
-                              style: TextStyle(color: AppColors.textMuted),
+                              style: TextStyle(
+                                color: context.fishermanColors.onSurfaceVariant,
+                              ),
                             ),
                           ),
                         )
@@ -686,13 +710,16 @@ class _CatchDetailScreenState extends State<CatchDetailScreen> {
                                       ),
                                       child: CircleAvatar(
                                         radius: 16,
-                                        backgroundColor: AppColors.primaryLight,
+                                        backgroundColor:
+                                            context.fishermanColors.primary,
                                         child: Text(
                                           comment.userNickname.isNotEmpty
                                               ? comment.userNickname[0]
                                               : '钓',
-                                          style: const TextStyle(
-                                            color: Colors.white,
+                                          style: TextStyle(
+                                            color: context
+                                                .fishermanColors
+                                                .onPrimary,
                                             fontSize: 12,
                                           ),
                                         ),
@@ -729,9 +756,11 @@ class _CatchDetailScreenState extends State<CatchDetailScreen> {
                                               ),
                                               Text(
                                                 comment.createdAt,
-                                                style: const TextStyle(
+                                                style: TextStyle(
                                                   fontSize: 11,
-                                                  color: AppColors.textMuted,
+                                                  color: context
+                                                      .fishermanColors
+                                                      .onSurfaceVariant,
                                                 ),
                                               ),
                                             ],
@@ -777,8 +806,12 @@ class _CatchDetailScreenState extends State<CatchDetailScreen> {
                   vertical: 8,
                 ),
                 decoration: BoxDecoration(
-                  color: Colors.white,
-                  border: Border(top: BorderSide(color: AppColors.lightBorder)),
+                  color: context.fishermanColors.surface,
+                  border: Border(
+                    top: BorderSide(
+                      color: context.fishermanColors.outlineVariant,
+                    ),
+                  ),
                 ),
                 child: SafeArea(
                   child: Row(
@@ -799,13 +832,16 @@ class _CatchDetailScreenState extends State<CatchDetailScreen> {
                               borderSide: BorderSide.none,
                             ),
                             filled: true,
-                            fillColor: AppColors.lightBackground,
+                            fillColor: context.fishermanBackground,
                           ),
                         ),
                       ),
                       const SizedBox(width: 8),
                       IconButton(
-                        icon: const Icon(Icons.send, color: AppColors.primary),
+                        icon: Icon(
+                          Icons.send,
+                          color: context.fishermanColors.primary,
+                        ),
                         onPressed: _sendComment,
                       ),
                     ],
@@ -823,7 +859,7 @@ class _CatchDetailScreenState extends State<CatchDetailScreen> {
     return Expanded(
       child: Row(
         children: [
-          Icon(icon, size: 18, color: AppColors.primary),
+          Icon(icon, size: 18, color: context.fishermanColors.primary),
           const SizedBox(width: 8),
           Expanded(
             child: Column(
@@ -831,9 +867,9 @@ class _CatchDetailScreenState extends State<CatchDetailScreen> {
               children: [
                 Text(
                   label,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 11,
-                    color: AppColors.textSecondary,
+                    color: context.fishermanColors.onSurfaceVariant,
                   ),
                 ),
                 Text(

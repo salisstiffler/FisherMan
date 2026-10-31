@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:provider/provider.dart';
+
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_constants.dart';
 import '../../providers/spots_provider.dart';
@@ -75,7 +76,8 @@ class _AddSpotSheetState extends State<AddSpotSheet> {
       setState(() {
         _currentLat = pos.latitude;
         _currentLng = pos.longitude;
-        _addressController.text = '当前所在地 (GPS: ${_currentLat.toStringAsFixed(4)}, ${_currentLng.toStringAsFixed(4)})';
+        _addressController.text =
+            '当前所在地 (GPS: ${_currentLat.toStringAsFixed(4)}, ${_currentLng.toStringAsFixed(4)})';
       });
 
       if (mounted) {
@@ -85,9 +87,8 @@ class _AddSpotSheetState extends State<AddSpotSheet> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('获取定位失败或超时: $e，已保留当前地图中心')),
-        );
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('获取定位失败或超时: $e，已保留当前地图中心')));
       }
     } finally {
       if (mounted) {
@@ -99,9 +100,8 @@ class _AddSpotSheetState extends State<AddSpotSheet> {
   void _submit() async {
     if (!_formKey.currentState!.validate()) return;
     if (_selectedFish.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('请至少选择一种出鱼鱼种')),
-      );
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('请至少选择一种出鱼鱼种')));
       return;
     }
 
@@ -126,13 +126,12 @@ class _AddSpotSheetState extends State<AddSpotSheet> {
     if (mounted) {
       if (success) {
         Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('🎣 钓点标记成功！感谢为钓友们开拓新标点！')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('🎣 钓点标记成功！感谢为钓友们开拓新标点！')));
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('创建钓点失败，请稍后重试')),
-        );
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text('创建钓点失败，请稍后重试')));
       }
     }
   }
@@ -140,8 +139,8 @@ class _AddSpotSheetState extends State<AddSpotSheet> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: const BoxDecoration(
-        color: Colors.white,
+      decoration: BoxDecoration(
+        color: context.fishermanColors.surface,
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       padding: EdgeInsets.only(
@@ -176,11 +175,17 @@ class _AddSpotSheetState extends State<AddSpotSheet> {
                 children: [
                   Text(
                     '标点坐标: ${_currentLat.toStringAsFixed(4)}, ${_currentLng.toStringAsFixed(4)}',
-                    style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: context.fishermanColors.onSurfaceVariant,
+                    ),
                   ),
                   TextButton.icon(
                     style: TextButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
                       visualDensity: VisualDensity.compact,
                     ),
                     icon: _isLocating
@@ -189,8 +194,18 @@ class _AddSpotSheetState extends State<AddSpotSheet> {
                             height: 14,
                             child: CircularProgressIndicator(strokeWidth: 2),
                           )
-                        : const Icon(Icons.my_location, size: 16, color: AppColors.secondary),
-                    label: const Text('定位到当前位置', style: TextStyle(fontSize: 12, color: AppColors.secondary)),
+                        : Icon(
+                            Icons.my_location,
+                            size: 16,
+                            color: context.fishermanColors.secondary,
+                          ),
+                    label: Text(
+                      '定位到当前位置',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: context.fishermanColors.secondary,
+                      ),
+                    ),
                     onPressed: _isLocating ? null : _fetchCurrentLocation,
                   ),
                 ],
@@ -200,12 +215,16 @@ class _AddSpotSheetState extends State<AddSpotSheet> {
               // Spot Name
               TextFormField(
                 controller: _nameController,
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   labelText: '钓点名称 *',
                   hintText: '例如: 钱塘江三桥南岸排灌口',
-                  prefixIcon: Icon(Icons.pin_drop, color: AppColors.primary),
+                  prefixIcon: Icon(
+                    Icons.pin_drop,
+                    color: context.fishermanColors.primary,
+                  ),
                 ),
-                validator: (val) => (val == null || val.trim().isEmpty) ? '请输入钓点名称' : null,
+                validator: (val) =>
+                    (val == null || val.trim().isEmpty) ? '请输入钓点名称' : null,
               ),
               const SizedBox(height: 12),
 
@@ -218,7 +237,9 @@ class _AddSpotSheetState extends State<AddSpotSheet> {
                       decoration: const InputDecoration(labelText: '水域类型'),
                       items: AppConstants.waterTypes
                           .where((t) => t != '全部')
-                          .map((t) => DropdownMenuItem(value: t, child: Text(t)))
+                          .map(
+                            (t) => DropdownMenuItem(value: t, child: Text(t)),
+                          )
                           .toList(),
                       onChanged: (val) {
                         if (val != null) setState(() => _waterType = val);
@@ -232,7 +253,9 @@ class _AddSpotSheetState extends State<AddSpotSheet> {
                       decoration: const InputDecoration(labelText: '收费形式'),
                       items: AppConstants.chargeTypes
                           .where((t) => t != '全部')
-                          .map((t) => DropdownMenuItem(value: t, child: Text(t)))
+                          .map(
+                            (t) => DropdownMenuItem(value: t, child: Text(t)),
+                          )
                           .toList(),
                       onChanged: (val) {
                         if (val != null) setState(() => _chargeType = val);
@@ -246,7 +269,10 @@ class _AddSpotSheetState extends State<AddSpotSheet> {
               // Depth Slider
               Text(
                 '平均水深: ${_depth.toStringAsFixed(1)} 米',
-                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
               Slider(
                 value: _depth,
@@ -254,13 +280,16 @@ class _AddSpotSheetState extends State<AddSpotSheet> {
                 max: 12.0,
                 divisions: 23,
                 label: '${_depth.toStringAsFixed(1)}m',
-                activeColor: AppColors.primary,
+                activeColor: context.fishermanColors.primary,
                 onChanged: (val) => setState(() => _depth = val),
               ),
               const SizedBox(height: 8),
 
               // Target Fish
-              const Text('出鱼鱼种 (多选)', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+              const Text(
+                '出鱼鱼种 (多选)',
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+              ),
               const SizedBox(height: 8),
               Wrap(
                 spacing: 8,
@@ -270,11 +299,17 @@ class _AddSpotSheetState extends State<AddSpotSheet> {
                   return FilterChip(
                     label: Text(fish),
                     selected: isSelected,
-                    selectedColor: AppColors.primary.withValues(alpha: 0.15),
-                    checkmarkColor: AppColors.primary,
+                    selectedColor: context.fishermanColors.primary.withValues(
+                      alpha: 0.15,
+                    ),
+                    checkmarkColor: context.fishermanColors.primary,
                     labelStyle: TextStyle(
-                      color: isSelected ? AppColors.primaryDark : AppColors.textPrimary,
-                      fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                      color: isSelected
+                          ? context.fishermanColors.primary
+                          : context.fishermanColors.onSurface,
+                      fontWeight: isSelected
+                          ? FontWeight.bold
+                          : FontWeight.normal,
                     ),
                     onSelected: (selected) {
                       setState(() {

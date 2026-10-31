@@ -105,7 +105,7 @@ class _SearchScreenState extends State<SearchScreen>
           ),
           TabBar(
             controller: _tabController,
-            labelColor: AppColors.primary,
+            labelColor: context.fishermanColors.primary,
             tabs: [
               Tab(text: '战报 (${_catches.length})'),
               Tab(text: '钓点 (${_spots.length})'),
@@ -140,7 +140,7 @@ class _SearchScreenState extends State<SearchScreen>
       itemBuilder: (context, index) {
         final item = CatchModel.fromJson(_catches[index]);
         return ListTile(
-          leading: const Icon(Icons.phishing, color: AppColors.primary),
+          leading: Icon(Icons.phishing, color: context.fishermanColors.primary),
           title: Text('${item.fishType} · ${item.weightKg} kg'),
           subtitle: Text('${item.userNickname} · ${item.notes}'),
           onTap: () => Navigator.push(
@@ -161,7 +161,7 @@ class _SearchScreenState extends State<SearchScreen>
       itemBuilder: (context, index) {
         final spot = SpotModel.fromJson(_spots[index]);
         return ListTile(
-          leading: const Icon(Icons.place, color: AppColors.primary),
+          leading: Icon(Icons.place, color: context.fishermanColors.primary),
           title: Text(spot.name),
           subtitle: Text(spot.address),
           onTap: () => Navigator.push(
@@ -181,12 +181,12 @@ class _SearchScreenState extends State<SearchScreen>
         final user = UserModel.fromJson(_users[index]);
         return ListTile(
           leading: CircleAvatar(
-            backgroundColor: AppColors.primaryLight,
+            backgroundColor: context.fishermanColors.primary,
             backgroundImage: user.avatar.isNotEmpty
                 ? NetworkImage(user.avatar)
                 : null,
             child: user.avatar.isEmpty
-                ? const Icon(Icons.person, color: Colors.white)
+                ? Icon(Icons.person, color: context.fishermanColors.onPrimary)
                 : null,
           ),
           title: Text(user.nickname),

@@ -166,10 +166,10 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
                         currentSpot.imageUrl ?? 'https://images.unsplash.com/photo-1501785888041-af3ef285b470?w=600',
                         fit: BoxFit.cover,
                         errorBuilder: (_, _, _) => Container(
-                          color: AppColors.primaryDark,
-                          child: const Icon(
+                          color: context.fishermanColors.primary,
+                          child: Icon(
                             Icons.water,
-                            color: Colors.white,
+                            color: context.fishermanColors.onPrimary,
                             size: 64,
                           ),
                         ),
@@ -215,7 +215,7 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
                             ? Icons.favorite
                             : Icons.favorite_border,
                         color: currentSpot.isFavorited
-                            ? AppColors.danger
+                            ? context.fishermanColors.error
                             : Colors.white,
                         size: 20,
                       ),
@@ -262,22 +262,22 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
                         children: [
                           _buildTag(
                             currentSpot.waterType,
-                            AppColors.primary,
+                            context.fishermanColors.primary,
                             Icons.water_drop,
                           ),
                           _buildTag(
                             currentSpot.chargeType,
-                            AppColors.secondary,
+                            context.fishermanColors.secondary,
                             Icons.attach_money,
                           ),
                           _buildTag(
                             '水深 ~${currentSpot.depthMeters}米',
-                            AppColors.goldenFish,
+                            context.fishermanColors.tertiary,
                             Icons.straighten,
                           ),
                           _buildTag(
                             '${currentSpot.likesCount} 人收藏',
-                            AppColors.textSecondary,
+                            context.fishermanColors.onSurfaceVariant,
                             Icons.favorite,
                           ),
                         ],
@@ -297,13 +297,16 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
                         ListTile(
                           contentPadding: EdgeInsets.zero,
                           leading: CircleAvatar(
-                            backgroundColor: AppColors.primaryLight,
+                            backgroundColor: context.fishermanColors.primary,
                             backgroundImage:
                                 currentSpot.creatorAvatar.isNotEmpty
                                 ? NetworkImage(currentSpot.creatorAvatar)
                                 : null,
                             child: currentSpot.creatorAvatar.isEmpty
-                                ? const Icon(Icons.person, color: Colors.white)
+                                ? Icon(
+                                    Icons.person,
+                                    color: context.fishermanColors.onPrimary,
+                                  )
                                 : null,
                           ),
                           title: Text(currentSpot.creatorNickname),
@@ -325,9 +328,9 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
                           padding: const EdgeInsets.all(14.0),
                           child: Row(
                             children: [
-                              const Icon(
+                              Icon(
                                 Icons.payments_outlined,
-                                color: AppColors.primary,
+                                color: context.fishermanColors.primary,
                                 size: 24,
                               ),
                               const SizedBox(width: 12),
@@ -346,7 +349,9 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
                                     Text(
                                       currentSpot.feeDesc,
                                       style: TextStyle(
-                                        color: AppColors.textSecondary,
+                                        color: context
+                                            .fishermanColors
+                                            .onSurfaceVariant,
                                         fontSize: 13,
                                       ),
                                     ),
@@ -378,10 +383,13 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
                               vertical: 6,
                             ),
                             decoration: BoxDecoration(
-                              color: AppColors.primary.withValues(alpha: 0.08),
+                              color: context.fishermanColors.primary.withValues(
+                                alpha: 0.08,
+                              ),
                               borderRadius: BorderRadius.circular(20),
                               border: Border.all(
-                                color: AppColors.primary.withValues(alpha: 0.2),
+                                color: context.fishermanColors.primary
+                                    .withValues(alpha: 0.2),
                               ),
                             ),
                             child: Row(
@@ -449,18 +457,22 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
                       Container(
                         padding: const EdgeInsets.all(14),
                         decoration: BoxDecoration(
-                          color: AppColors.goldenFish.withValues(alpha: 0.12),
+                          color: context.fishermanColors.tertiary.withValues(
+                            alpha: 0.12,
+                          ),
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
-                            color: AppColors.goldenFish.withValues(alpha: 0.3),
+                            color: context.fishermanColors.tertiary.withValues(
+                              alpha: 0.3,
+                            ),
                           ),
                         ),
                         child: Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Icon(
+                            Icon(
                               Icons.eco,
-                              color: AppColors.goldenFish,
+                              color: context.fishermanColors.tertiary,
                               size: 20,
                             ),
                             const SizedBox(width: 8),
@@ -498,9 +510,9 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
                             children: [
                               Row(
                                 children: [
-                                  const Icon(
+                                  Icon(
                                     Icons.place,
-                                    color: AppColors.primary,
+                                    color: context.fishermanColors.primary,
                                     size: 20,
                                   ),
                                   const SizedBox(width: 8),
@@ -522,9 +534,11 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
                                 children: [
                                   Text(
                                     'GPS: ${currentSpot.lat.toStringAsFixed(4)}, ${currentSpot.lng.toStringAsFixed(4)}',
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       fontSize: 12,
-                                      color: AppColors.textSecondary,
+                                      color: context
+                                          .fishermanColors
+                                          .onSurfaceVariant,
                                     ),
                                   ),
                                   ElevatedButton.icon(
@@ -739,12 +753,15 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
                                         record.photoUrl == null ||
                                             record.photoUrl!.isEmpty
                                         ? Container(
-                                            color: AppColors.primary.withValues(
-                                              alpha: 0.1,
-                                            ),
-                                            child: const Icon(
+                                            color: context
+                                                .fishermanColors
+                                                .primary
+                                                .withValues(alpha: 0.1),
+                                            child: Icon(
                                               Icons.phishing,
-                                              color: AppColors.primary,
+                                              color: context
+                                                  .fishermanColors
+                                                  .primary,
                                               size: 30,
                                             ),
                                           )
@@ -753,11 +770,15 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
                                             fit: BoxFit.cover,
                                             errorBuilder: (_, _, _) =>
                                                 Container(
-                                                  color: AppColors.primary
+                                                  color: context
+                                                      .fishermanColors
+                                                      .primary
                                                       .withValues(alpha: 0.1),
-                                                  child: const Icon(
+                                                  child: Icon(
                                                     Icons.phishing,
-                                                    color: AppColors.primary,
+                                                    color: context
+                                                        .fishermanColors
+                                                        .primary,
                                                   ),
                                                 ),
                                           ),
@@ -782,10 +803,12 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
                                               overflow: TextOverflow.ellipsis,
                                             ),
                                           ),
-                                          const Icon(
+                                          Icon(
                                             Icons.chevron_right,
                                             size: 18,
-                                            color: AppColors.textMuted,
+                                            color: context
+                                                .fishermanColors
+                                                .onSurfaceVariant,
                                           ),
                                         ],
                                       ),
@@ -794,7 +817,9 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
                                         children: [
                                           CircleAvatar(
                                             radius: 10,
-                                            backgroundColor: AppColors.primary
+                                            backgroundColor: context
+                                                .fishermanColors
+                                                .primary
                                                 .withValues(alpha: 0.12),
                                             backgroundImage:
                                                 record.userAvatar.isNotEmpty
@@ -803,10 +828,12 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
                                                   )
                                                 : null,
                                             child: record.userAvatar.isEmpty
-                                                ? const Icon(
+                                                ? Icon(
                                                     Icons.person,
                                                     size: 13,
-                                                    color: AppColors.primary,
+                                                    color: context
+                                                        .fishermanColors
+                                                        .primary,
                                                   )
                                                 : null,
                                           ),
@@ -866,12 +893,14 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
                       width: 38,
                       height: 38,
                       decoration: BoxDecoration(
-                        color: AppColors.goldenFish.withValues(alpha: 0.14),
+                        color: context.fishermanColors.tertiary.withValues(
+                          alpha: 0.14,
+                        ),
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      child: const Icon(
+                      child: Icon(
                         Icons.emoji_events_outlined,
-                        color: AppColors.goldenFish,
+                        color: context.fishermanColors.tertiary,
                       ),
                     ),
                     const SizedBox(width: 10),
@@ -1008,13 +1037,13 @@ class _CatchCountBadge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: AppColors.goldenFish.withValues(alpha: 0.12),
+        color: context.fishermanColors.tertiary.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(20),
       ),
       child: Text(
         '$count 条',
-        style: const TextStyle(
-          color: AppColors.goldenFish,
+        style: TextStyle(
+          color: context.fishermanColors.tertiary,
           fontWeight: FontWeight.w800,
           fontSize: 12,
         ),

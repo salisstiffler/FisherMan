@@ -3,8 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-import '../constants/app_colors.dart';
-
 class FishingNavigation {
   static Future<void> open(
     BuildContext context, {
@@ -88,7 +86,10 @@ class FishingNavigation {
     return showDialog<void>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        icon: const Icon(Icons.directions_outlined, color: AppColors.primary),
+        icon: Icon(
+          Icons.directions_outlined,
+          color: Theme.of(context).colorScheme.primary,
+        ),
         title: Text('前往$name'),
         content: Column(
           mainAxisSize: MainAxisSize.min,

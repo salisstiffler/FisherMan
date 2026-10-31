@@ -235,7 +235,9 @@ class _PublishCatchScreenState extends State<PublishCatchScreen> {
                 decoration: BoxDecoration(
                   color: Theme.of(context).colorScheme.surface,
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: AppColors.lightBorder),
+                  border: Border.all(
+                    color: context.fishermanColors.outlineVariant,
+                  ),
                 ),
                 child: Column(
                   children: [
@@ -302,17 +304,17 @@ class _PublishCatchScreenState extends State<PublishCatchScreen> {
                         padding: const EdgeInsets.symmetric(vertical: 20.0),
                         child: Column(
                           children: [
-                            const Icon(
+                            Icon(
                               Icons.add_a_photo_outlined,
                               size: 48,
-                              color: AppColors.primary,
+                              color: context.fishermanColors.primary,
                             ),
                             const SizedBox(height: 8),
-                            const Text(
+                            Text(
                               '请拍照记录或从相册选择大鱼实拍照',
                               style: TextStyle(
                                 fontSize: 13,
-                                color: AppColors.textSecondary,
+                                color: context.fishermanColors.onSurfaceVariant,
                               ),
                             ),
                             const SizedBox(height: 4),
@@ -320,9 +322,8 @@ class _PublishCatchScreenState extends State<PublishCatchScreen> {
                               '支持拍摄、相册上传与经典大鱼样本',
                               style: TextStyle(
                                 fontSize: 11,
-                                color: AppColors.textMuted.withValues(
-                                  alpha: 0.8,
-                                ),
+                                color: context.fishermanColors.onSurfaceVariant
+                                    .withValues(alpha: 0.8),
                               ),
                             ),
                           ],
@@ -370,11 +371,11 @@ class _PublishCatchScreenState extends State<PublishCatchScreen> {
                       ),
                       child: Row(
                         children: [
-                          const Text(
+                          Text(
                             '样本图: ',
                             style: TextStyle(
                               fontSize: 11,
-                              color: AppColors.textSecondary,
+                              color: context.fishermanColors.onSurfaceVariant,
                             ),
                           ),
                           Expanded(
@@ -424,10 +425,12 @@ class _PublishCatchScreenState extends State<PublishCatchScreen> {
                   return ChoiceChip(
                     label: Text(fish),
                     selected: isSelected,
-                    selectedColor: AppColors.primary,
+                    selectedColor: context.fishermanColors.primary,
                     backgroundColor: Theme.of(context).colorScheme.surface,
                     labelStyle: TextStyle(
-                      color: isSelected ? Colors.white : AppColors.textPrimary,
+                      color: isSelected
+                          ? context.fishermanColors.onPrimary
+                          : context.fishermanColors.onSurface,
                       fontWeight: isSelected
                           ? FontWeight.bold
                           : FontWeight.normal,
@@ -448,10 +451,13 @@ class _PublishCatchScreenState extends State<PublishCatchScreen> {
                       keyboardType: const TextInputType.numberWithOptions(
                         decimal: true,
                       ),
-                      decoration: const InputDecoration(
+                      decoration: InputDecoration(
                         labelText: '单尾重量 (kg) *',
                         suffixText: '公斤',
-                        prefixIcon: Icon(Icons.scale, color: AppColors.primary),
+                        prefixIcon: Icon(
+                          Icons.scale,
+                          color: context.fishermanColors.primary,
+                        ),
                       ),
                       validator: (v) =>
                           (v == null || double.tryParse(v) == null)
@@ -466,12 +472,12 @@ class _PublishCatchScreenState extends State<PublishCatchScreen> {
                       keyboardType: const TextInputType.numberWithOptions(
                         decimal: true,
                       ),
-                      decoration: const InputDecoration(
+                      decoration: InputDecoration(
                         labelText: '体长 (cm)',
                         suffixText: '厘米',
                         prefixIcon: Icon(
                           Icons.straighten,
-                          color: AppColors.primary,
+                          color: context.fishermanColors.primary,
                         ),
                       ),
                     ),
@@ -493,10 +499,12 @@ class _PublishCatchScreenState extends State<PublishCatchScreen> {
                   return ChoiceChip(
                     label: Text(method),
                     selected: isSelected,
-                    selectedColor: AppColors.secondary,
+                    selectedColor: context.fishermanColors.secondary,
                     backgroundColor: Theme.of(context).colorScheme.surface,
                     labelStyle: TextStyle(
-                      color: isSelected ? Colors.white : AppColors.textPrimary,
+                      color: isSelected
+                          ? context.fishermanColors.onSecondary
+                          : context.fishermanColors.onSurface,
                       fontWeight: isSelected
                           ? FontWeight.bold
                           : FontWeight.normal,
@@ -517,11 +525,11 @@ class _PublishCatchScreenState extends State<PublishCatchScreen> {
               if (spots.isNotEmpty)
                 DropdownButtonFormField<int?>(
                   initialValue: _selectedSpotId ?? spots.first.id,
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     labelText: '选择关联钓点',
                     prefixIcon: Icon(
                       Icons.location_on,
-                      color: AppColors.primary,
+                      color: context.fishermanColors.primary,
                     ),
                   ),
                   items: spots.map((s) {
@@ -556,7 +564,9 @@ class _PublishCatchScreenState extends State<PublishCatchScreen> {
                   hintText: '如: 淳安老家门前小水塘',
                   prefixIcon: const Icon(Icons.edit_location_alt_outlined),
                   hintStyle: TextStyle(
-                    color: AppColors.textMuted.withValues(alpha: 0.6),
+                    color: context.fishermanColors.onSurfaceVariant.withValues(
+                      alpha: 0.6,
+                    ),
                   ),
                 ),
               ),
@@ -578,7 +588,7 @@ class _PublishCatchScreenState extends State<PublishCatchScreen> {
                           min: 0.5,
                           max: 10.0,
                           divisions: 19,
-                          activeColor: AppColors.primary,
+                          activeColor: context.fishermanColors.primary,
                           onChanged: (v) => setState(() => _depth = v),
                         ),
                       ],
@@ -644,11 +654,13 @@ class _PublishCatchScreenState extends State<PublishCatchScreen> {
       child: ActionChip(
         label: Text(label),
         backgroundColor: isCurrent
-            ? AppColors.primary
-            : AppColors.lightBackground,
+            ? context.fishermanColors.primary
+            : context.fishermanBackground,
         labelStyle: TextStyle(
           fontSize: 10,
-          color: isCurrent ? Colors.white : AppColors.textPrimary,
+          color: isCurrent
+              ? context.fishermanColors.onPrimary
+              : context.fishermanColors.onSurface,
           fontWeight: isCurrent ? FontWeight.bold : FontWeight.normal,
         ),
         onPressed: () {

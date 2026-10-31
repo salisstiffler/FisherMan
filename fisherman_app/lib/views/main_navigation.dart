@@ -5,6 +5,7 @@ import 'feed/feed_screen.dart';
 import 'notifications/notifications_screen.dart';
 import 'publish/publish_catch_screen.dart';
 import 'profile/profile_screen.dart';
+import 'settings/settings_screen.dart';
 import '../core/network/api_client.dart';
 import '../core/network/api_endpoints.dart';
 
@@ -49,20 +50,32 @@ class _MainNavigationState extends State<MainNavigation> {
             onRead: () => setState(() => _unreadCount = 0),
           ),
           const ProfileScreen(),
+          const SettingsScreen(),
         ],
       ),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surface,
+          border: Border(
+            top: BorderSide(
+              color: Theme.of(context).colorScheme.outlineVariant
+                  .withValues(alpha: 0.45),
+            ),
+          ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
-              blurRadius: 10,
-              offset: const Offset(0, -3),
+              color: Theme.of(context).colorScheme.primary
+                  .withValues(alpha: 0.08),
+              blurRadius: 24,
+              offset: const Offset(0, -6),
             ),
           ],
         ),
         child: NavigationBar(
+          height: 72,
+          labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
           selectedIndex: _currentIndex,
+          animationDuration: const Duration(milliseconds: 220),
           onDestinationSelected: (index) {
             setState(() {
               _currentIndex = index;
@@ -73,31 +86,21 @@ class _MainNavigationState extends State<MainNavigation> {
           },
           backgroundColor: Theme.of(context).colorScheme.surface,
           indicatorColor: Theme.of(context).colorScheme.primary
-              .withValues(alpha: 0.12),
+              .withValues(alpha: 0.15),
           destinations: [
             NavigationDestination(
-              icon: Icon(Icons.map_outlined),
-              selectedIcon: Icon(
-                Icons.map,
-                color: Theme.of(context).colorScheme.primary,
-              ),
+              icon: const Icon(Icons.map_outlined),
+              selectedIcon: const Icon(Icons.map),
               label: '钓点地图',
             ),
             NavigationDestination(
-              icon: Icon(Icons.dynamic_feed_outlined),
-              selectedIcon: Icon(
-                Icons.dynamic_feed,
-                color: Theme.of(context).colorScheme.primary,
-              ),
+              icon: const Icon(Icons.dynamic_feed_outlined),
+              selectedIcon: const Icon(Icons.dynamic_feed),
               label: '渔获动态',
             ),
             NavigationDestination(
-              icon: Icon(Icons.add_circle_outline, size: 28),
-              selectedIcon: Icon(
-                Icons.add_circle,
-                color: Theme.of(context).colorScheme.primary,
-                size: 28,
-              ),
+              icon: const Icon(Icons.add_circle_outline, size: 28),
+              selectedIcon: const Icon(Icons.add_circle, size: 28),
               label: '发布渔获',
             ),
             NavigationDestination(
@@ -125,10 +128,7 @@ class _MainNavigationState extends State<MainNavigation> {
               selectedIcon: Stack(
                 clipBehavior: Clip.none,
                 children: [
-                  Icon(
-                    Icons.notifications,
-                    color: Theme.of(context).colorScheme.primary,
-                  ),
+                  const Icon(Icons.notifications),
                   if (_unreadCount > 0)
                     Positioned(
                       right: -2,
@@ -149,12 +149,14 @@ class _MainNavigationState extends State<MainNavigation> {
               label: '消息',
             ),
             NavigationDestination(
-              icon: Icon(Icons.person_outline),
-              selectedIcon: Icon(
-                Icons.person,
-                color: Theme.of(context).colorScheme.primary,
-              ),
+              icon: const Icon(Icons.person_outline),
+              selectedIcon: const Icon(Icons.person),
               label: '我的钓界',
+            ),
+            NavigationDestination(
+              icon: const Icon(Icons.settings_outlined),
+              selectedIcon: const Icon(Icons.settings),
+              label: '设置',
             ),
           ],
         ),

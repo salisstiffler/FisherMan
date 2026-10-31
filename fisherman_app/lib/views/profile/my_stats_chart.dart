@@ -79,12 +79,15 @@ class _MyStatsChartState extends State<MyStatsChart> {
                         child: LineChart(_buildMonthlyChart(monthly)),
                       ),
                     const SizedBox(height: 8),
-                    const Wrap(
+                    Wrap(
                       spacing: 16,
                       children: [
-                        _ChartLegend(color: AppColors.primary, label: '渔获数量'),
                         _ChartLegend(
-                          color: AppColors.secondary,
+                          color: context.fishermanColors.primary,
+                          label: '渔获数量',
+                        ),
+                        _ChartLegend(
+                          color: context.fishermanColors.secondary,
                           label: '总重量 kg',
                         ),
                       ],
@@ -113,7 +116,9 @@ class _MyStatsChartState extends State<MyStatsChart> {
                     else
                       SizedBox(
                         height: 220,
-                        child: PieChart(_buildDistributionChart(distribution)),
+                        child: PieChart(
+                          _buildDistributionChart(context, distribution),
+                        ),
                       ),
                   ],
                 ),
@@ -181,12 +186,12 @@ class _MyStatsChartState extends State<MyStatsChart> {
             (index) => FlSpot(index.toDouble(), counts[index]),
           ),
           isCurved: true,
-          color: AppColors.primary,
+          color: context.fishermanColors.primary,
           barWidth: 3,
           dotData: const FlDotData(show: true),
           belowBarData: BarAreaData(
             show: true,
-            color: AppColors.primary.withValues(alpha: 0.12),
+            color: context.fishermanColors.primary.withValues(alpha: 0.12),
           ),
         ),
         LineChartBarData(
@@ -195,7 +200,7 @@ class _MyStatsChartState extends State<MyStatsChart> {
             (index) => FlSpot(index.toDouble(), weights[index]),
           ),
           isCurved: true,
-          color: AppColors.secondary,
+          color: context.fishermanColors.secondary,
           barWidth: 3,
           dotData: const FlDotData(show: true),
         ),
@@ -204,23 +209,34 @@ class _MyStatsChartState extends State<MyStatsChart> {
   }
 
   PieChartData _buildDistributionChart(
+    BuildContext context,
     List<Map<String, dynamic>> distribution,
   ) {
+    final scheme = Theme.of(context).colorScheme;
+    final chartColors = <(Color, Color)>[
+      (scheme.primary, scheme.onPrimary),
+      (scheme.secondary, scheme.onSecondary),
+      (scheme.tertiary, scheme.onTertiary),
+      (scheme.error, scheme.onError),
+      (scheme.primaryContainer, scheme.onPrimaryContainer),
+      (scheme.secondaryContainer, scheme.onSecondaryContainer),
+    ];
     return PieChartData(
       sectionsSpace: 2,
       centerSpaceRadius: 28,
       sections: List.generate(distribution.length, (index) {
         final item = distribution[index];
         final count = (item['count'] as num?)?.toDouble() ?? 0;
+        final colors = chartColors[index % chartColors.length];
         return PieChartSectionData(
           value: count,
           title: '${item['name'] ?? '鱼种'}\n${count.toInt()}',
-          color: Colors.primaries[index % Colors.primaries.length],
+          color: colors.$1,
           radius: 82,
-          titleStyle: const TextStyle(
+          titleStyle: TextStyle(
             fontSize: 10,
             fontWeight: FontWeight.bold,
-            color: Colors.white,
+            color: colors.$2,
           ),
         );
       }),

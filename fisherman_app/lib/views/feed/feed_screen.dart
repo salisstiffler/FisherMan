@@ -76,9 +76,9 @@ class _FeedScreenState extends State<FeedScreen> {
                 children: [
                   Row(
                     children: [
-                      const Icon(
+                      Icon(
                         Icons.location_on,
-                        color: AppColors.primary,
+                        color: context.fishermanColors.primary,
                         size: 24,
                       ),
                       const SizedBox(width: 8),
@@ -108,13 +108,15 @@ class _FeedScreenState extends State<FeedScreen> {
                       vertical: 2,
                     ),
                     decoration: BoxDecoration(
-                      color: AppColors.primary.withValues(alpha: 0.1),
+                      color: context.fishermanColors.primary.withValues(
+                        alpha: 0.1,
+                      ),
                       borderRadius: BorderRadius.circular(4),
                     ),
                     child: Text(
                       item.spotWaterType,
-                      style: const TextStyle(
-                        color: AppColors.primary,
+                      style: TextStyle(
+                        color: context.fishermanColors.primary,
                         fontSize: 11,
                         fontWeight: FontWeight.bold,
                       ),
@@ -127,13 +129,15 @@ class _FeedScreenState extends State<FeedScreen> {
                       vertical: 2,
                     ),
                     decoration: BoxDecoration(
-                      color: AppColors.secondary.withValues(alpha: 0.1),
+                      color: context.fishermanColors.secondary.withValues(
+                        alpha: 0.1,
+                      ),
                       borderRadius: BorderRadius.circular(4),
                     ),
                     child: Text(
                       item.spotChargeType,
-                      style: const TextStyle(
-                        color: AppColors.secondary,
+                      style: TextStyle(
+                        color: context.fishermanColors.secondary,
                         fontSize: 11,
                       ),
                     ),
@@ -142,8 +146,8 @@ class _FeedScreenState extends State<FeedScreen> {
                   Expanded(
                     child: Text(
                       item.spotAddress,
-                      style: const TextStyle(
-                        color: AppColors.textSecondary,
+                      style: TextStyle(
+                        color: context.fishermanColors.onSurfaceVariant,
                         fontSize: 12,
                       ),
                       overflow: TextOverflow.ellipsis,
@@ -178,10 +182,10 @@ class _FeedScreenState extends State<FeedScreen> {
                             height: 48,
                             child: Container(
                               decoration: BoxDecoration(
-                                color: AppColors.goldenFish,
+                                color: context.fishermanColors.tertiary,
                                 shape: BoxShape.circle,
                                 border: Border.all(
-                                  color: Colors.white,
+                                  color: context.fishermanColors.onTertiary,
                                   width: 2.5,
                                 ),
                                 boxShadow: [
@@ -191,7 +195,7 @@ class _FeedScreenState extends State<FeedScreen> {
                                   ),
                                 ],
                               ),
-                              child: const Center(
+                              child: Center(
                                 child: Icon(
                                   Icons.phishing,
                                   color: Colors.white,
@@ -214,7 +218,9 @@ class _FeedScreenState extends State<FeedScreen> {
                 decoration: BoxDecoration(
                   color: Theme.of(ctx).colorScheme.surfaceContainerLow,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppColors.lightBorder),
+                  border: Border.all(
+                    color: context.fishermanColors.outlineVariant,
+                  ),
                 ),
                 child: Column(
                   children: [
@@ -223,9 +229,9 @@ class _FeedScreenState extends State<FeedScreen> {
                       children: [
                         Row(
                           children: [
-                            const Icon(
+                            Icon(
                               Icons.near_me,
-                              color: AppColors.secondary,
+                              color: context.fishermanColors.secondary,
                               size: 18,
                             ),
                             const SizedBox(width: 6),
@@ -239,9 +245,9 @@ class _FeedScreenState extends State<FeedScreen> {
                             const SizedBox(width: 6),
                             Text(
                               '${item.spotLat.toStringAsFixed(4)}, ${item.spotLng.toStringAsFixed(4)}',
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 12,
-                                color: AppColors.textSecondary,
+                                color: context.fishermanColors.onSurfaceVariant,
                               ),
                             ),
                           ],
@@ -257,10 +263,10 @@ class _FeedScreenState extends State<FeedScreen> {
                               const SnackBar(content: Text('已复制经纬度坐标到剪贴板！')),
                             );
                           },
-                          child: const Text(
+                          child: Text(
                             '复制坐标',
                             style: TextStyle(
-                              color: AppColors.primary,
+                              color: context.fishermanColors.primary,
                               fontSize: 12,
                               fontWeight: FontWeight.bold,
                             ),
@@ -271,10 +277,10 @@ class _FeedScreenState extends State<FeedScreen> {
                     const SizedBox(height: 6),
                     Row(
                       children: [
-                        const Icon(
+                        Icon(
                           Icons.directions_car_outlined,
                           size: 16,
-                          color: AppColors.textSecondary,
+                          color: context.fishermanColors.onSurfaceVariant,
                         ),
                         const SizedBox(width: 6),
                         Expanded(
@@ -282,9 +288,8 @@ class _FeedScreenState extends State<FeedScreen> {
                             '交通指引: 沿环湖大道驾车直达，水边提供钓友简易泊车位。',
                             style: TextStyle(
                               fontSize: 12,
-                              color: AppColors.textSecondary.withValues(
-                                alpha: 0.9,
-                              ),
+                              color: context.fishermanColors.onSurfaceVariant
+                                  .withValues(alpha: 0.9),
                             ),
                           ),
                         ),
@@ -400,19 +405,21 @@ class _FeedScreenState extends State<FeedScreen> {
             child: RefreshIndicator(
               onRefresh: () => catchesProvider.fetchCatches(),
               child: catches.isEmpty
-                  ? const Center(
+                  ? Center(
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Icon(
                             Icons.phishing,
                             size: 54,
-                            color: AppColors.textMuted,
+                            color: context.fishermanColors.onSurfaceVariant,
                           ),
                           SizedBox(height: 12),
                           Text(
                             '暂无此鱼种的动态，快去成为首发大师吧！',
-                            style: TextStyle(color: AppColors.textSecondary),
+                            style: TextStyle(
+                              color: context.fishermanColors.onSurfaceVariant,
+                            ),
                           ),
                         ],
                       ),
@@ -434,7 +441,26 @@ class _FeedScreenState extends State<FeedScreen> {
                           );
                         }
                         final item = catches[index];
-                        return _buildCatchCard(context, item, catchesProvider);
+                        return TweenAnimationBuilder<double>(
+                          key: ValueKey(item.id),
+                          tween: Tween(begin: 0, end: 1),
+                          duration: Duration(
+                            milliseconds: 380 + (index % 7) * 55,
+                          ),
+                          curve: Curves.easeOutCubic,
+                          builder: (context, progress, child) => Opacity(
+                            opacity: progress,
+                            child: Transform.translate(
+                              offset: Offset(0, 18 * (1 - progress)),
+                              child: child,
+                            ),
+                          ),
+                          child: _buildCatchCard(
+                            context,
+                            item,
+                            catchesProvider,
+                          ),
+                        );
                       },
                     ),
             ),
@@ -451,11 +477,11 @@ class _FeedScreenState extends State<FeedScreen> {
       child: FilterChip(
         label: Text(fish),
         selected: isSelected,
-        selectedColor: AppColors.primary,
+        selectedColor: context.fishermanColors.primary,
         backgroundColor: Theme.of(context).colorScheme.surface,
         labelStyle: TextStyle(
           color: isSelected
-              ? Colors.white
+              ? context.fishermanColors.onPrimary
               : Theme.of(context).colorScheme.onSurface,
           fontSize: 12,
           fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
@@ -503,11 +529,11 @@ class _FeedScreenState extends State<FeedScreen> {
                       backgroundImage: item.userAvatar.isNotEmpty
                           ? NetworkImage(item.userAvatar)
                           : null,
-                      backgroundColor: AppColors.primary,
+                      backgroundColor: context.fishermanColors.primary,
                       child: item.userAvatar.isEmpty
-                          ? const Icon(
+                          ? Icon(
                               Icons.person,
-                              color: Colors.white,
+                              color: context.fishermanColors.onPrimary,
                               size: 20,
                             )
                           : null,
@@ -536,9 +562,9 @@ class _FeedScreenState extends State<FeedScreen> {
                         ),
                         Text(
                           '${item.fishingMethod} • ${item.createdAt ?? '刚刚'}',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 12,
-                            color: AppColors.textSecondary,
+                            color: context.fishermanColors.onSurfaceVariant,
                           ),
                         ),
                       ],
@@ -555,34 +581,38 @@ class _FeedScreenState extends State<FeedScreen> {
                         vertical: 4,
                       ),
                       decoration: BoxDecoration(
-                        color: AppColors.primary.withValues(alpha: 0.08),
+                        color: context.fishermanColors.primary.withValues(
+                          alpha: 0.08,
+                        ),
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
-                          color: AppColors.primary.withValues(alpha: 0.2),
+                          color: context.fishermanColors.primary.withValues(
+                            alpha: 0.2,
+                          ),
                         ),
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Icon(
+                          Icon(
                             Icons.location_on,
                             size: 14,
-                            color: AppColors.primary,
+                            color: context.fishermanColors.primary,
                           ),
                           const SizedBox(width: 2),
                           Text(
                             item.spotName,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 12,
-                              color: AppColors.primary,
+                              color: context.fishermanColors.primary,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
                           const SizedBox(width: 2),
-                          const Icon(
+                          Icon(
                             Icons.navigation,
                             size: 11,
-                            color: AppColors.primary,
+                            color: context.fishermanColors.primary,
                           ),
                         ],
                       ),
@@ -604,28 +634,28 @@ class _FeedScreenState extends State<FeedScreen> {
                 color: Theme.of(context).colorScheme.surfaceContainerLow,
                 child: Row(
                   children: [
-                    const Icon(
+                    Icon(
                       Icons.place_outlined,
                       size: 14,
-                      color: AppColors.textSecondary,
+                      color: context.fishermanColors.onSurfaceVariant,
                     ),
                     const SizedBox(width: 4),
                     Expanded(
                       child: Text(
                         '详细位置: ${item.spotAddress}',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 12,
-                          color: AppColors.textSecondary,
+                          color: context.fishermanColors.onSurfaceVariant,
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
-                    const Text(
+                    Text(
                       '查看地图与导航 >',
                       style: TextStyle(
                         fontSize: 11,
-                        color: AppColors.secondary,
+                        color: context.fishermanColors.secondary,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -644,10 +674,10 @@ class _FeedScreenState extends State<FeedScreen> {
                   fit: BoxFit.cover,
                   errorBuilder: (_, _, _) => Container(
                     height: 200,
-                    color: AppColors.primaryDark,
-                    child: const Icon(
+                    color: context.fishermanColors.primary,
+                    child: Icon(
                       Icons.phishing,
-                      color: Colors.white,
+                      color: context.fishermanColors.onPrimary,
                       size: 48,
                     ),
                   ),
@@ -663,14 +693,16 @@ class _FeedScreenState extends State<FeedScreen> {
                     decoration: BoxDecoration(
                       color: Colors.black.withValues(alpha: 0.75),
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: AppColors.goldenFish),
+                      border: Border.all(
+                        color: context.fishermanColors.tertiary,
+                      ),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(
+                        Icon(
                           Icons.emoji_events,
-                          color: AppColors.goldenFish,
+                          color: context.fishermanColors.tertiary,
                           size: 16,
                         ),
                         const SizedBox(width: 4),
@@ -697,10 +729,10 @@ class _FeedScreenState extends State<FeedScreen> {
                   item.notes,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 13,
                     height: 1.4,
-                    color: AppColors.textPrimary,
+                    color: context.fishermanColors.onSurface,
                   ),
                 ),
               ),
@@ -720,14 +752,26 @@ class _FeedScreenState extends State<FeedScreen> {
                       ),
                       child: Row(
                         children: [
-                          Icon(
-                            item.isLiked
-                                ? Icons.favorite
-                                : Icons.favorite_border,
-                            size: 18,
-                            color: item.isLiked
-                                ? AppColors.danger
-                                : AppColors.textSecondary,
+                          AnimatedSwitcher(
+                            duration: const Duration(milliseconds: 260),
+                            transitionBuilder: (child, animation) =>
+                                ScaleTransition(
+                                  scale: CurvedAnimation(
+                                    parent: animation,
+                                    curve: Curves.easeOutBack,
+                                  ),
+                                  child: child,
+                                ),
+                            child: Icon(
+                              item.isLiked
+                                  ? Icons.favorite
+                                  : Icons.favorite_border,
+                              key: ValueKey(item.isLiked),
+                              size: 18,
+                              color: item.isLiked
+                                  ? context.fishermanColors.error
+                                  : context.fishermanColors.onSurfaceVariant,
+                            ),
                           ),
                           const SizedBox(width: 4),
                           Text(
@@ -735,8 +779,8 @@ class _FeedScreenState extends State<FeedScreen> {
                             style: TextStyle(
                               fontSize: 12,
                               color: item.isLiked
-                                  ? AppColors.danger
-                                  : AppColors.textSecondary,
+                                  ? context.fishermanColors.error
+                                  : context.fishermanColors.onSurfaceVariant,
                               fontWeight: item.isLiked
                                   ? FontWeight.bold
                                   : FontWeight.normal,
@@ -749,17 +793,17 @@ class _FeedScreenState extends State<FeedScreen> {
                   const SizedBox(width: 16),
                   Row(
                     children: [
-                      const Icon(
+                      Icon(
                         Icons.chat_bubble_outline,
                         size: 16,
-                        color: AppColors.textSecondary,
+                        color: context.fishermanColors.onSurfaceVariant,
                       ),
                       const SizedBox(width: 4),
                       Text(
                         '${item.commentsCount}',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 12,
-                          color: AppColors.textSecondary,
+                          color: context.fishermanColors.onSurfaceVariant,
                         ),
                       ),
                     ],
@@ -767,19 +811,19 @@ class _FeedScreenState extends State<FeedScreen> {
                   const Spacer(),
                   InkWell(
                     onTap: () => _showSpotLocationAndNavigation(context, item),
-                    child: const Row(
+                    child: Row(
                       children: [
                         Icon(
                           Icons.directions,
                           size: 14,
-                          color: AppColors.primary,
+                          color: context.fishermanColors.primary,
                         ),
                         SizedBox(width: 2),
                         Text(
                           '导航',
                           style: TextStyle(
                             fontSize: 12,
-                            color: AppColors.primary,
+                            color: context.fishermanColors.primary,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
@@ -787,11 +831,11 @@ class _FeedScreenState extends State<FeedScreen> {
                     ),
                   ),
                   const SizedBox(width: 12),
-                  const Text(
+                  Text(
                     '查看战报 >',
                     style: TextStyle(
                       fontSize: 12,
-                      color: AppColors.primary,
+                      color: context.fishermanColors.primary,
                       fontWeight: FontWeight.bold,
                     ),
                   ),

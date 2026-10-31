@@ -150,14 +150,19 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                   return ListTile(
                     tileColor: notification['isRead'] == true
                         ? Theme.of(context).colorScheme.surface
-                        : AppColors.primary.withValues(alpha: 0.06),
+                        : context.fishermanColors.primary.withValues(
+                            alpha: 0.06,
+                          ),
                     leading: CircleAvatar(
-                      backgroundColor: AppColors.primaryLight,
+                      backgroundColor: context.fishermanColors.primary,
                       backgroundImage: avatar.isNotEmpty
                           ? NetworkImage(avatar)
                           : null,
                       child: avatar.isEmpty
-                          ? Icon(_iconForType(type), color: Colors.white)
+                          ? Icon(
+                              _iconForType(type),
+                              color: context.fishermanColors.onPrimary,
+                            )
                           : null,
                     ),
                     title: Text(
@@ -166,10 +171,10 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                     subtitle: Text(notification['createdAt'] as String? ?? ''),
                     trailing: notification['isRead'] == true
                         ? null
-                        : const Icon(
+                        : Icon(
                             Icons.circle,
                             size: 9,
-                            color: AppColors.danger,
+                            color: context.fishermanColors.error,
                           ),
                     onTap: () => _openNotification(notification),
                   );

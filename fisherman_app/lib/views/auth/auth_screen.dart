@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_constants.dart';
 import '../../providers/auth_provider.dart';
@@ -11,7 +12,8 @@ class AuthScreen extends StatefulWidget {
   State<AuthScreen> createState() => _AuthScreenState();
 }
 
-class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateMixin {
+class _AuthScreenState extends State<AuthScreen>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
   final _loginUsernameController = TextEditingController(text: 'diaoyu1');
   final _loginPasswordController = TextEditingController(text: '123456');
@@ -69,7 +71,7 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
     final auth = Provider.of<AuthProvider>(context);
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: context.fishermanBackground,
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -82,48 +84,58 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
                   width: 80,
                   height: 80,
                   decoration: BoxDecoration(
-                    color: AppColors.primary,
+                    color: context.fishermanColors.primary,
                     shape: BoxShape.circle,
                     boxShadow: [
                       BoxShadow(
-                        color: AppColors.primary.withValues(alpha: 0.3),
+                        color: context.fishermanColors.primary.withValues(
+                          alpha: 0.3,
+                        ),
                         blurRadius: 16,
                         offset: const Offset(0, 6),
                       ),
                     ],
                   ),
-                  child: const Center(
-                    child: Icon(Icons.phishing, color: Colors.white, size: 44),
+                  child: Center(
+                    child: Icon(
+                      Icons.phishing,
+                      color: context.fishermanColors.onPrimary,
+                      size: 44,
+                    ),
                   ),
                 ),
                 const SizedBox(height: 16),
-                const Text(
+                Text(
                   AppConstants.appName,
                   style: TextStyle(
                     fontSize: 28,
                     fontWeight: FontWeight.bold,
                     letterSpacing: 2,
-                    color: AppColors.primaryDark,
+                    color: context.fishermanColors.primary,
                   ),
                 ),
                 const SizedBox(height: 6),
-                const Text(
+                Text(
                   AppConstants.appSlogan,
-                  style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: context.fishermanColors.onSurfaceVariant,
+                  ),
                 ),
                 const SizedBox(height: 28),
 
                 // Tab Switcher
                 Container(
                   decoration: BoxDecoration(
-                    color: AppColors.lightBackground,
+                    color: context.fishermanBackground,
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: TabBar(
                     controller: _tabController,
-                    indicatorColor: AppColors.primary,
-                    labelColor: AppColors.primary,
-                    unselectedLabelColor: AppColors.textSecondary,
+                    indicatorColor: context.fishermanColors.primary,
+                    labelColor: context.fishermanColors.primary,
+                    unselectedLabelColor:
+                        context.fishermanColors.onSurfaceVariant,
                     indicatorSize: TabBarIndicatorSize.tab,
                     tabs: const [
                       Tab(text: '账号登录'),
@@ -165,7 +177,9 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
                             child: ElevatedButton(
                               onPressed: auth.isLoading ? null : _onLogin,
                               child: auth.isLoading
-                                  ? const CircularProgressIndicator(color: Colors.white)
+                                  ? CircularProgressIndicator(
+                                      color: context.fishermanColors.onPrimary,
+                                    )
                                   : const Text('立即登录'),
                             ),
                           ),
@@ -206,7 +220,9 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
                             child: ElevatedButton(
                               onPressed: auth.isLoading ? null : _onRegister,
                               child: auth.isLoading
-                                  ? const CircularProgressIndicator(color: Colors.white)
+                                  ? CircularProgressIndicator(
+                                      color: context.fishermanColors.onPrimary,
+                                    )
                                   : const Text('完成注册并进入'),
                             ),
                           ),
@@ -220,10 +236,16 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
                 const Divider(),
                 const SizedBox(height: 8),
                 TextButton.icon(
-                  icon: const Icon(Icons.explore_outlined, color: AppColors.secondary),
-                  label: const Text(
+                  icon: Icon(
+                    Icons.explore_outlined,
+                    color: context.fishermanColors.secondary,
+                  ),
+                  label: Text(
                     '免注册一键体验 (游客模式)',
-                    style: TextStyle(color: AppColors.secondary, fontWeight: FontWeight.bold),
+                    style: TextStyle(
+                      color: context.fishermanColors.secondary,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   onPressed: () {
                     auth.enterGuestMode();
