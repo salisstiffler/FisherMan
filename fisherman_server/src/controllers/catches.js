@@ -2,7 +2,10 @@ const db = require('../db');
 const { createNotification } = require('./notifications');
 
 exports.listCatches = (req, res) => {
-  const { fishType, spotId, userId, limit = 50 } = req.query;
+  // Pagination parameters from query string (default to the client-side standard)
+  const limit = Number(req.query.limit) || 50;
+  const offset = Number(req.query.offset) || 0;
+  const { fishType, spotId, userId } = req.query;
   const currentUserId = req.user?.id || 0;
 
   let query = `
@@ -39,14 +42,37 @@ exports.listCatches = (req, res) => {
     query += ` AND c.user_id = ?`;
     params.push(Number(userId));
   }
-
-  const offsetVal = Math.max(Number(req.query.offset) || 0, 0);
-  const limitVal = Math.min(Math.max(Number(limit) || 50, 1), 100);
+  
+  // Apply pagination (Limit and Offset)
   query += ` ORDER BY c.created_at DESC LIMIT ? OFFSET ?`;
-  params.push(limitVal);
-  params.push(offsetVal);
+  params.push(Math.min(Math.max(limit, 1), 100)); // Limit maximum at 100
+  params.push(Math.max(0, offset));
 
+  // Fetch the list of catches
   const rows = db.prepare(query).all(...params);
+
+  // Count total matching records for potential pagination UI usage
+  const totalCountQuery = `SELECT COUNT(c.id) FROM catches c WHERE 1=1`;
+  let totalMatches = 0;
+  let totalParams = [currentUserId];
+  let totalQuery = totalCountQuery;
+
+  if (fishType && fishType !== '全部') {
+    totalQuery += ` AND c.fish_type LIKE ?`;
+    totalParams.push(`%${fishType}%`);
+  }
+  if (spotId) {
+    totalQuery += ` AND c.spot_id = ?`;
+    totalParams.push(Number(spotId));
+  }
+  if (userId) {
+    totalQuery += ` AND c.user_id = ?`;
+    totalParams.push(Number(userId));
+  }
+  
+  const totalRows = db.prepare(totalQuery).all(...totalParams);
+  totalMatches = totalRows[0] ? totalRows[0].count : 0;
+
 
   res.json({
     code: 200,
@@ -76,6 +102,12 @@ exports.listCatches = (req, res) => {
       isLiked: Boolean(r.is_liked),
       createdAt: r.created_at,
     })),
+    pagination: {
+      total: totalMatches,
+      limit: limit,
+      offset: offset,
+      hasMore: totalMatches > ((offset + limit) || 0),
+    }
   });
 };
 
