@@ -41,12 +41,28 @@ function optionalAuth(req, res, next) {
 }
 
 function generateToken(user) {
-  return jwt.sign({ id: user.id, username: user.username }, JWT_SECRET, { expiresIn: '30d' });
+  return jwt.sign({ id: user.id, username: user.username }, JWT_SECRET, { expiresIn: '7d' });
+}
+
+function generateRefreshToken(user) {
+  return jwt.sign({ id: user.id, username: user.username, type: 'refresh' }, JWT_SECRET, { expiresIn: '30d' });
+}
+
+function verifyRefreshToken(token) {
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET);
+    if (decoded.type !== 'refresh') return null;
+    return decoded;
+  } catch {
+    return null;
+  }
 }
 
 module.exports = {
   authenticate,
   optionalAuth,
   generateToken,
+  generateRefreshToken,
+  verifyRefreshToken,
   JWT_SECRET,
 };

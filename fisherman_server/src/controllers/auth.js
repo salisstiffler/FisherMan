@@ -1,6 +1,6 @@
 const bcrypt = require('bcryptjs');
 const db = require('../db');
-const { generateToken } = require('../middleware/auth');
+const { generateToken, generateRefreshToken, verifyRefreshToken } = require('../middleware/auth');
 
 function getUserStats(userId) {
   const spotCount = db.prepare('SELECT COUNT(*) as count FROM spots WHERE creator_id = ?').get(userId).count;
@@ -19,10 +19,12 @@ function getUserStats(userId) {
 
   // Compute fun badges for fishermen
   const badges = [];
-  if (catchStats.count >= 1) badges.push({ id: 'first_blood', name: '破空先锋', icon: '🎣' });
-  if (catchStats.count >= 5) badges.push({ id: 'veteran', name: '老钓骨', icon: '🏆' });
-  if (catchStats.max_weight >= 5.0) badges.push({ id: 'monster_hunter', name: '巨物猎人', icon: '🦈' });
-  if (spotCount >= 2) badges.push({ id: 'spot_explorer', name: '钓点拓荒者', icon: '🗺️' });
+  if (catchStats.count >= 1) badges.push({ id: 'first_blood', name: '破空先锋', icon: '🎣', desc: '首开纪录，成功发布第1尾战报', target: 1, current: catchStats.count });
+  if (catchStats.count >= 5) badges.push({ id: 'veteran', name: '老钓骨', icon: '🏆', desc: '垂钓常客，累计发布5次以上出钓战报', target: 5, current: catchStats.count });
+  if (catchStats.max_weight >= 5.0) badges.push({ id: 'monster_hunter', name: '巨物猎人', icon: '🦈', desc: '博击巨物，单尾渔获突破 5.0 kg', target: 5.0, current: catchStats.max_weight });
+  if (spotCount >= 2) badges.push({ id: 'spot_explorer', name: '钓点拓荒者', icon: '🗺️', desc: '标点大师，累计众包标记 2 个以上优质水域', target: 2, current: spotCount });
+  if (catchStats.total_weight >= 20.0) badges.push({ id: 'master_angler', name: '百斤大师', icon: '👑', desc: '鱼获丰硕，累计总重量超过 20 kg', target: 20.0, current: catchStats.total_weight });
+  if (followersCount >= 3) badges.push({ id: 'famous_angler', name: '名扬钓界', icon: '🌟', desc: '名震四方，拥有 3 位以上钓友粉丝', target: 3, current: followersCount });
 
   return {
     spotsCreated: spotCount,
@@ -65,6 +67,7 @@ exports.register = (req, res) => {
 
   const user = db.prepare('SELECT id, username, nickname, avatar, bio, fishing_years, target_fish, created_at FROM users WHERE id = ?').get(result.lastInsertRowid);
   const token = generateToken(user);
+  const refreshToken = generateRefreshToken(user);
   const stats = getUserStats(user.id);
 
   res.status(201).json({
@@ -72,6 +75,7 @@ exports.register = (req, res) => {
     message: '注册成功',
     data: {
       token,
+      refreshToken,
       user: { ...user, stats },
     },
   });
@@ -90,6 +94,7 @@ exports.login = (req, res) => {
 
   const { password_hash, ...user } = userWithPwd;
   const token = generateToken(user);
+  const refreshToken = generateRefreshToken(user);
   const stats = getUserStats(user.id);
 
   res.json({
@@ -97,6 +102,7 @@ exports.login = (req, res) => {
     message: '登录成功',
     data: {
       token,
+      refreshToken,
       user: { ...user, stats },
     },
   });
@@ -147,5 +153,34 @@ exports.getUserProfile = (req, res) => {
   res.json({
     code: 200,
     data: { ...user, stats, isFollowing },
+  });
+};
+
+exports.refreshToken = (req, res) => {
+  const { refreshToken } = req.body;
+  if (!refreshToken) {
+    return res.status(400).json({ code: 400, message: '请提供 refreshToken' });
+  }
+
+  const decoded = verifyRefreshToken(refreshToken);
+  if (!decoded) {
+    return res.status(401).json({ code: 401, message: 'refreshToken 无效或已过期，请重新登录' });
+  }
+
+  const user = db.prepare('SELECT id, username, nickname, avatar, bio, fishing_years, target_fish, created_at FROM users WHERE id = ?').get(decoded.id);
+  if (!user) {
+    return res.status(401).json({ code: 401, message: '用户不存在' });
+  }
+
+  const newToken = generateToken(user);
+  const newRefreshToken = generateRefreshToken(user);
+
+  res.json({
+    code: 200,
+    message: 'Token 刷新成功',
+    data: {
+      token: newToken,
+      refreshToken: newRefreshToken,
+    },
   });
 };

@@ -21,6 +21,32 @@ class HourlyForecast {
   }
 }
 
+class DailyForecast {
+  final String day;
+  final String tempRange;
+  final String pressureRange;
+  final int fishingScore;
+  final String status;
+
+  DailyForecast({
+    required this.day,
+    required this.tempRange,
+    required this.pressureRange,
+    required this.fishingScore,
+    required this.status,
+  });
+
+  factory DailyForecast.fromJson(Map<String, dynamic> json) {
+    return DailyForecast(
+      day: json['day'] ?? '',
+      tempRange: json['tempRange'] ?? '',
+      pressureRange: json['pressureRange'] ?? '',
+      fishingScore: json['fishingScore'] ?? 80,
+      status: json['status'] ?? '适宜垂钓',
+    );
+  }
+}
+
 class WeatherModel {
   final String temperature;
   final String pressure;
@@ -30,6 +56,7 @@ class WeatherModel {
   final String fishingStatus;
   final String advice;
   final List<HourlyForecast> hourlyForecast;
+  final List<DailyForecast> dailyForecast;
 
   WeatherModel({
     this.temperature = '22°C',
@@ -40,6 +67,7 @@ class WeatherModel {
     this.fishingStatus = '适宜垂钓',
     this.advice = '气压平稳，溶氧适中，大鱼开口活跃。',
     this.hourlyForecast = const [],
+    this.dailyForecast = const [],
   });
 
   factory WeatherModel.fromJson(Map<String, dynamic> json) {
@@ -47,6 +75,13 @@ class WeatherModel {
     if (json['hourlyForecast'] is List) {
       forecasts = (json['hourlyForecast'] as List)
           .map((item) => HourlyForecast.fromJson(item))
+          .toList();
+    }
+
+    List<DailyForecast> dailies = [];
+    if (json['dailyForecast'] is List) {
+      dailies = (json['dailyForecast'] as List)
+          .map((item) => DailyForecast.fromJson(item))
           .toList();
     }
 
@@ -59,6 +94,7 @@ class WeatherModel {
       fishingStatus: json['fishingStatus'] ?? '适宜垂钓',
       advice: json['advice'] ?? '气压平稳适中。',
       hourlyForecast: forecasts,
+      dailyForecast: dailies,
     );
   }
 }

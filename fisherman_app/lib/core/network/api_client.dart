@@ -28,21 +28,27 @@ class ApiClient {
 
   String _baseUrl = AppConstants.defaultApiUrl;
   String? _authToken;
+  String? _refreshToken;
 
   String get baseUrl => _baseUrl;
   String? get authToken => _authToken;
+  String? get refreshToken => _refreshToken;
 
   void setBaseUrl(String url) {
     _baseUrl = url;
   }
 
-  void setToken(String? token) {
+  void setToken(String? token, [String? refreshToken]) {
     _authToken = token;
+    if (refreshToken != null) {
+      _refreshToken = refreshToken;
+    }
   }
 
   Future<void> init() async {
     final prefs = await SharedPreferences.getInstance();
     _authToken = prefs.getString('auth_token');
+    _refreshToken = prefs.getString('refresh_token');
     final savedUrl = prefs.getString('api_base_url');
     if (savedUrl != null && savedUrl.isNotEmpty) {
       _baseUrl = savedUrl;
@@ -76,9 +82,18 @@ class ApiClient {
         uri = uri.replace(queryParameters: stringParams);
       }
 
-      final response = await http
+      var response = await http
           .get(uri, headers: _buildHeaders())
           .timeout(const Duration(seconds: 8));
+
+      if (response.statusCode == 401 && _refreshToken != null) {
+        final refreshed = await _tryRefreshToken();
+        if (refreshed) {
+          response = await http
+              .get(uri, headers: _buildHeaders())
+              .timeout(const Duration(seconds: 8));
+        }
+      }
 
       return _handleResponse(response);
     } catch (e) {
@@ -163,6 +178,33 @@ class ApiClient {
     } catch (e) {
       return ApiResponse(success: false, code: 500, message: '图片上传失败: $e');
     }
+  }
+
+  Future<bool> _tryRefreshToken() async {
+    if (_refreshToken == null || _refreshToken!.isEmpty) return false;
+    try {
+      final res = await http.post(
+        Uri.parse('$_baseUrl${ApiEndpoints.refresh}'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'refreshToken': _refreshToken}),
+      );
+      if (res.statusCode == 200) {
+        final body = jsonDecode(utf8.decode(res.bodyBytes));
+        if (body['data'] != null) {
+          final newToken = body['data']['token'];
+          final newRefresh = body['data']['refreshToken'];
+          _authToken = newToken;
+          if (newRefresh != null) _refreshToken = newRefresh;
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString('auth_token', newToken);
+          if (newRefresh != null) {
+            await prefs.setString('refresh_token', newRefresh);
+          }
+          return true;
+        }
+      }
+    } catch (_) {}
+    return false;
   }
 
   ApiResponse<dynamic> _handleResponse(http.Response response) {

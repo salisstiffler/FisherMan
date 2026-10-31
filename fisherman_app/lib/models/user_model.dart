@@ -2,18 +2,38 @@ class UserBadge {
   final String id;
   final String name;
   final String icon;
+  final String desc;
+  final double target;
+  final double current;
 
-  UserBadge({required this.id, required this.name, required this.icon});
+  UserBadge({
+    required this.id,
+    required this.name,
+    required this.icon,
+    this.desc = '',
+    this.target = 0,
+    this.current = 0,
+  });
 
   factory UserBadge.fromJson(Map<String, dynamic> json) {
     return UserBadge(
       id: json['id'] ?? '',
       name: json['name'] ?? '',
       icon: json['icon'] ?? '🎣',
+      desc: json['desc'] ?? '',
+      target: (json['target'] as num?)?.toDouble() ?? 0,
+      current: (json['current'] as num?)?.toDouble() ?? 0,
     );
   }
 
-  Map<String, dynamic> toJson() => {'id': id, 'name': name, 'icon': icon};
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'name': name,
+        'icon': icon,
+        'desc': desc,
+        'target': target,
+        'current': current,
+      };
 }
 
 class UserStats {

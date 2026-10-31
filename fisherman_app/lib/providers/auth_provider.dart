@@ -60,14 +60,18 @@ class AuthProvider extends ChangeNotifier {
 
       if (res.success && res.data != null) {
         final token = res.data['token'];
+        final refreshToken = res.data['refreshToken'];
         final user = UserModel.fromJson(res.data['user']);
         
-        _api.setToken(token);
+        _api.setToken(token, refreshToken);
         _currentUser = user;
         _isGuest = false;
 
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('auth_token', token);
+        if (refreshToken != null) {
+          await prefs.setString('refresh_token', refreshToken);
+        }
         await _saveCachedUser(user);
 
         _isLoading = false;
@@ -104,14 +108,18 @@ class AuthProvider extends ChangeNotifier {
 
       if (res.success && res.data != null) {
         final token = res.data['token'];
+        final refreshToken = res.data['refreshToken'];
         final user = UserModel.fromJson(res.data['user']);
         
-        _api.setToken(token);
+        _api.setToken(token, refreshToken);
         _currentUser = user;
         _isGuest = false;
 
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('auth_token', token);
+        if (refreshToken != null) {
+          await prefs.setString('refresh_token', refreshToken);
+        }
         await _saveCachedUser(user);
 
         _isLoading = false;

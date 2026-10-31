@@ -55,6 +55,7 @@ app.get('/health', (req, res) => {
 // Auth routes
 app.post('/api/auth/register', authCtrl.register);
 app.post('/api/auth/login', authCtrl.login);
+app.post('/api/auth/refresh', authCtrl.refreshToken);
 app.get('/api/auth/me', authenticate, authCtrl.getMe);
 app.put('/api/auth/profile', authenticate, authCtrl.updateProfile);
 app.get('/api/users/:id', optionalAuth, authCtrl.getUserProfile);

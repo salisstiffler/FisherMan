@@ -57,6 +57,44 @@ class _ProfileScreenState extends State<ProfileScreen>
 
   int? _loadedUserId;
 
+  void _showBadgeDialog(BuildContext context, UserBadge badge) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Row(
+          children: [
+            Text(badge.icon, style: const TextStyle(fontSize: 28)),
+            const SizedBox(width: 10),
+            Text(badge.name, style: const TextStyle(fontWeight: FontWeight.bold)),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(badge.desc.isNotEmpty ? badge.desc : '恭喜达成钓界专属荣耀成就！', style: const TextStyle(fontSize: 14)),
+            const SizedBox(height: 12),
+            if (badge.target > 0) ...[
+              Text('达成进度: ${badge.current} / ${badge.target}', style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+              const SizedBox(height: 6),
+              LinearProgressIndicator(
+                value: (badge.current / badge.target).clamp(0.0, 1.0),
+                backgroundColor: AppColors.lightBorder,
+                valueColor: const AlwaysStoppedAnimation<Color>(AppColors.primary),
+              ),
+            ],
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('了解'),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _showServerSettings(BuildContext context) {
     final controller = TextEditingController(text: ApiClient().baseUrl);
     showDialog(
@@ -519,32 +557,36 @@ class _ProfileScreenState extends State<ProfileScreen>
                       const SizedBox(height: 8),
                       Row(
                         children: stats.badges.map((b) {
-                          return Container(
-                            margin: const EdgeInsets.only(right: 8),
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 6,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(10),
-                              border: Border.all(color: AppColors.lightBorder),
-                            ),
-                            child: Row(
-                              children: [
-                                Text(
-                                  b.icon,
-                                  style: const TextStyle(fontSize: 16),
-                                ),
-                                const SizedBox(width: 4),
-                                Text(
-                                  b.name,
-                                  style: const TextStyle(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.bold,
+                          return InkWell(
+                            onTap: () => _showBadgeDialog(context, b),
+                            borderRadius: BorderRadius.circular(10),
+                            child: Container(
+                              margin: const EdgeInsets.only(right: 8),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 6,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(color: AppColors.lightBorder),
+                              ),
+                              child: Row(
+                                children: [
+                                  Text(
+                                    b.icon,
+                                    style: const TextStyle(fontSize: 16),
                                   ),
-                                ),
-                              ],
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    b.name,
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                           );
                         }).toList(),

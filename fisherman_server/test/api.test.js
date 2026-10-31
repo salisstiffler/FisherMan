@@ -293,4 +293,23 @@ test('social profile, notifications, and content ownership endpoints', async () 
     (await request(`/api/spots/${spotId}`, owner.token, 'DELETE')).status,
     200,
   );
+
+  // Test Refresh Token endpoint
+  const refreshRes = await fetch(`${baseUrl}/api/auth/refresh`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ refreshToken: owner.refreshToken }),
+  });
+  assert.strictEqual(refreshRes.status, 200);
+  const refreshJson = await refreshRes.json();
+  assert.strictEqual(refreshJson.code, 200);
+  assert.ok(refreshJson.data.token);
+  assert.ok(refreshJson.data.refreshToken);
+
+  // Test 3-day weather forecast
+  const weatherRes = await fetch(`${baseUrl}/api/weather?lat=30.25&lng=120.15`);
+  assert.strictEqual(weatherRes.status, 200);
+  const weatherJson = await weatherRes.json();
+  assert.ok(Array.isArray(weatherJson.data.dailyForecast));
+  assert.strictEqual(weatherJson.data.dailyForecast.length, 3);
 });
